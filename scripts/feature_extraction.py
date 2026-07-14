@@ -15,6 +15,12 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DATA_ROOT = REPO_ROOT / "data"
+LABELS_ROOT = DATA_ROOT / "labels"
+ASSETS_ROOT = REPO_ROOT / "assets"
+FEATURE_OUTPUT_ROOT = REPO_ROOT / "artifacts" / "feature_extraction"
+
 # --- Windows CUDA DLL Fix ---
 if os.name == 'nt':
     import site
@@ -64,8 +70,8 @@ class VideoFeatureExtractor:
 
     def init_models(self):
         # Download MediaPipe PoseLandmarker model
-        model_path_pose = 'pose_landmarker.task'
-        if not os.path.exists(model_path_pose):
+        model_path_pose = str(ASSETS_ROOT / "pose_landmarker.task")
+        if not Path(model_path_pose).exists():
             print("Downloading PoseLandmarker model...")
             urllib.request.urlretrieve(
                 "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
@@ -83,8 +89,8 @@ class VideoFeatureExtractor:
         )
         
         # Download MediaPipe FaceLandmarker model if needed
-        model_path = 'face_landmarker.task'
-        if not os.path.exists(model_path):
+        model_path = str(ASSETS_ROOT / "face_landmarker.task")
+        if not Path(model_path).exists():
             print("Downloading FaceLandmarker model...")
             urllib.request.urlretrieve(
                 "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
@@ -411,7 +417,10 @@ if __name__ == "__main__":
     import sys
     # --- CONFIGURATION ---
     SPLIT = sys.argv[1] if len(sys.argv) > 1 else "Validation"  # "Train", "Validation", or "Test"
-    INPUT_DIR = os.path.join(".", "dataset", SPLIT)
+    INPUT_DIR = str(DATA_ROOT / "raw_videos" / SPLIT)
+    legacy_input_dir = str(REPO_ROOT / "dataset" / SPLIT)
+    if not Path(INPUT_DIR).exists() and Path(legacy_input_dir).exists():
+        INPUT_DIR = legacy_input_dir
     
     # EngageNet label files per split
     LABELS_MAP = {
@@ -431,21 +440,23 @@ if __name__ == "__main__":
     MAX_CONCURRENT_VIDEOS = 4 # Lowered to 1 due to continuous freezing
     # ------------------------------------
     
-    OUTPUT_DIR = f"./Datasets/{NUM_CHANGEPOINTS}_Changepoint_Dataset_{SPLIT}" if EXTRACTION_MODE == "changepoint" else f"./Datasets/Targeted_Dataset_{SPLIT}"
+    output_subdir = f"{NUM_CHANGEPOINTS}_Changepoint_Dataset_{SPLIT}" if EXTRACTION_MODE == "changepoint" else f"Targeted_Dataset_{SPLIT}"
+    OUTPUT_DIR = str(FEATURE_OUTPUT_ROOT / output_subdir)
     
     if not os.path.exists(INPUT_DIR):
-        os.makedirs(INPUT_DIR)
+        os.makedirs(INPUT_DIR, exist_ok=True)
         print(f"Directory created. Please place videos in: {INPUT_DIR}")
         sys.exit()
 
     # Pre-load EngageNet labels
     labels_df = None
-    if os.path.exists(LABELS_FILE):
-        print(f"Loading labels from {LABELS_FILE}...")
+    labels_path = LABELS_ROOT / LABELS_FILE
+    if labels_path.exists():
+        print(f"Loading labels from {labels_path}...")
         if LABELS_FILE.endswith('.xlsx'):
-            labels_df = pd.read_excel(LABELS_FILE)
+            labels_df = pd.read_excel(labels_path)
         else:
-            labels_df = pd.read_csv(LABELS_FILE)
+            labels_df = pd.read_csv(labels_path)
         if 'chunk' in labels_df.columns:
             labels_df['chunk'] = labels_df['chunk'].astype(str).str.strip()
 
