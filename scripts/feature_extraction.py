@@ -431,7 +431,7 @@ if __name__ == "__main__":
     LABELS_FILE = LABELS_MAP[SPLIT]
     
     EXTRACTION_MODE = sys.argv[2] if len(sys.argv) > 2 else "targeted"  # "targeted" or "changepoint"
-    NUM_CHANGEPOINTS = 3 
+    NUM_CHANGEPOINTS = int(sys.argv[3]) if len(sys.argv) > 3 else 3 
     
     # --- PERFORMANCE & PARALLEL CONFIG ---
     FRAME_SKIP = 2         

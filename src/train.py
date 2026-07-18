@@ -8,7 +8,7 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from dataset import EngagementDataset, get_dataloader
-from model import EngagementLSTM
+from model import EngagementLSTM, EngagementMLP
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = REPO_ROOT / 'artifacts' / 'checkpoints'
@@ -32,8 +32,8 @@ class WeightedMSELoss(nn.Module):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train Engagement LSTM Model")
-    parser.add_argument('--sampling_method', type=str, required=True, choices=['targeted', 'bocpd'],
-                        help="Temporal sampling method to use")
+    parser.add_argument('--sampling_method', type=str, required=True,
+                        help="Temporal sampling method to use (e.g. targeted, bocpd, 5-changepoint)")
     parser.add_argument('--mode', type=str, default='classification', choices=['classification', 'regression'],
                         help="Task mode: classification (4 classes) or regression (continuous)")
     parser.add_argument('--binarize_threshold', type=int, default=None, choices=[1, 2, 3],
@@ -46,6 +46,8 @@ def parse_args():
     parser.add_argument('--weight_decay', type=float, default=1e-4, help="Weight decay for AdamW")
     parser.add_argument('--no_class_weights', action='store_true', help="Disable class weighting in loss functions")
     parser.add_argument('--device', type=str, default=None, help="Device to use (cpu, mps, cuda)")
+    parser.add_argument('--model', type=str, default='lstm', choices=['lstm', 'mlp'],
+                        help="Model architecture to use")
     return parser.parse_args()
 
 def main():
@@ -92,13 +94,21 @@ def main():
         class_weights_tensor = torch.tensor(inv_weights, dtype=torch.float32).to(device)
     
     # 3. Initialize Model and Loss Function
-    model = EngagementLSTM(
-        input_dim=1518, 
-        hidden_dim=args.hidden_dim, 
-        num_layers=1, 
-        num_classes=num_classes, 
-        mode=args.mode
-    ).to(device)
+    if args.model == 'mlp':
+        model = EngagementMLP(
+            input_dim=1518, 
+            hidden_dim=args.hidden_dim, 
+            num_classes=num_classes, 
+            mode=args.mode
+        ).to(device)
+    else:
+        model = EngagementLSTM(
+            input_dim=1518, 
+            hidden_dim=args.hidden_dim, 
+            num_layers=1, 
+            num_classes=num_classes, 
+            mode=args.mode
+        ).to(device)
     
     if args.mode == 'classification':
         if args.no_class_weights:
@@ -118,7 +128,7 @@ def main():
     best_val_loss = float('inf')
     epochs_no_improve = 0
     
-    checkpoint_name = f"best_model_{args.sampling_method}_{args.mode}"
+    checkpoint_name = f"best_model_{args.model}_{args.sampling_method}_{args.mode}"
     if args.binarize_threshold is not None:
         checkpoint_name += f"_binary_thresh{args.binarize_threshold}"
     if args.no_class_weights:

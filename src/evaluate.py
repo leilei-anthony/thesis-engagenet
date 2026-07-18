@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from dataset import get_dataloader
-from model import EngagementLSTM
+from model import EngagementLSTM, EngagementMLP
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support, accuracy_score
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -19,8 +19,8 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate Engagement LSTM Model")
-    parser.add_argument('--sampling_method', type=str, required=True, choices=['targeted', 'bocpd'],
-                        help="Temporal sampling method to use")
+    parser.add_argument('--sampling_method', type=str, required=True,
+                        help="Temporal sampling method to use (e.g. targeted, bocpd, 5-changepoint)")
     parser.add_argument('--mode', type=str, default='classification', choices=['classification', 'regression'],
                         help="Task mode: classification (4 classes) or regression (continuous)")
     parser.add_argument('--binarize_threshold', type=int, default=None, choices=[1, 2, 3],
@@ -29,6 +29,8 @@ def parse_args():
     parser.add_argument('--hidden_dim', type=int, default=64, help="LSTM hidden state dimension")
     parser.add_argument('--no_class_weights', action='store_true', help="Disable class weighting in loss functions")
     parser.add_argument('--device', type=str, default=None, help="Device to use (cpu, mps, cuda)")
+    parser.add_argument('--model', type=str, default='lstm', choices=['lstm', 'mlp'],
+                        help="Model architecture to evaluate")
     return parser.parse_args()
 
 def main():
@@ -57,7 +59,7 @@ def main():
     )
     
     # 2. Load Checkpoint
-    checkpoint_name = f"best_model_{args.sampling_method}_{args.mode}"
+    checkpoint_name = f"best_model_{args.model}_{args.sampling_method}_{args.mode}"
     if args.binarize_threshold is not None:
         checkpoint_name += f"_binary_thresh{args.binarize_threshold}"
     if args.no_class_weights:
@@ -71,13 +73,21 @@ def main():
     print(f"Loading checkpoint from {checkpoint_path}...")
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     
-    model = EngagementLSTM(
-        input_dim=1518, 
-        hidden_dim=args.hidden_dim, 
-        num_layers=1, 
-        num_classes=num_classes, 
-        mode=args.mode
-    ).to(device)
+    if args.model == 'mlp':
+        model = EngagementMLP(
+            input_dim=1518, 
+            hidden_dim=args.hidden_dim, 
+            num_classes=num_classes, 
+            mode=args.mode
+        ).to(device)
+    else:
+        model = EngagementLSTM(
+            input_dim=1518, 
+            hidden_dim=args.hidden_dim, 
+            num_layers=1, 
+            num_classes=num_classes, 
+            mode=args.mode
+        ).to(device)
     
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
@@ -174,9 +184,9 @@ def main():
         suffix = ""
         
     if args.no_class_weights:
-        plot_name = f"confusion_matrix_{args.sampling_method}_{args.mode}{suffix}_unweighted.png"
+        plot_name = f"confusion_matrix_{args.model}_{args.sampling_method}_{args.mode}{suffix}_unweighted.png"
     else:
-        plot_name = f"confusion_matrix_{args.sampling_method}_{args.mode}{suffix}.png"
+        plot_name = f"confusion_matrix_{args.model}_{args.sampling_method}_{args.mode}{suffix}.png"
         
     sns.heatmap(
         cm, 

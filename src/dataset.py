@@ -28,12 +28,14 @@ class EngagementDataset(Dataset):
         self.binarize_threshold = binarize_threshold
         
         # Determine the CSV filename
-        if self.sampling_method == 'bocpd':
+        if 'changepoint' in self.sampling_method:
+            filename = f"{self.sampling_method}-{self.split}.csv"
+        elif self.sampling_method == 'bocpd':
             filename = f"3-changepoint-{self.split}.csv"
         elif self.sampling_method == 'targeted':
             filename = f"targeted-{self.split}.csv"
         else:
-            raise ValueError(f"Unknown sampling method: {sampling_method}. Must be 'bocpd' or 'targeted'.")
+            filename = f"{self.sampling_method}-{self.split}.csv"
             
         csv_path = os.path.join(self.data_dir, filename)
         if not os.path.exists(csv_path):

@@ -294,5 +294,83 @@ This file serves as the log for all training runs, ablation studies, and evaluat
   - Performance is extremely similar to Run 9 (Targeted) due to the highly balanced class ratios.
 
 
+## Baseline Model Comparison (MLP, SVM, Random Forest)
+
+To establish robust benchmarks, we evaluated three additional machine learning models:
+1. **Neural Network (MLP)**: A PyTorch-based model consisting of a temporal average pooling layer, followed by fully-connected layers (`input_dim (1518) -> hidden_dim (64) -> hidden_dim/2 (32) -> output_dim`).
+2. **SVM**: An RBF-kernel Support Vector Machine trained on standard-scaled temporally average-pooled features.
+3. **Random Forest (RF)**: An ensemble of 100 decision trees trained on average-pooled features.
+
+### Comparison Tables
+
+#### 1. Multi-class Classification (Targeted vs BOCPD)
+| Sampling Method | Model | Accuracy | Macro F1 | Weighted F1 | PCC (p-value) | Overall MSE |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Targeted** | LSTM (Run 1) | 0.1922 | 0.0806 | 0.0620 | 0.0000 (1.0) | 5.4459 |
+| | MLP | 0.4926 | 0.3820 | 0.4938 | 0.4315 ($1.12\times 10^{-101}$) | 1.4284 |
+| | SVM | 0.4782 | **0.4329** | 0.5089 | 0.5014 ($3.96\times 10^{-142}$) | 1.3395 |
+| | Random Forest | **0.5388** | 0.3961 | **0.5174** | **0.5101 ($8.46\times 10^{-148}$)** | **1.3507** |
+| **BOCPD** | LSTM (Run 2) | 0.1922 | 0.0806 | 0.0620 | 0.0000 (1.0) | 5.4459 |
+| | MLP | 0.4526 | 0.3289 | 0.4371 | 0.2075 ($4.44\times 10^{-23}$) | 2.4360 |
+| | SVM | 0.4558 | **0.4112** | 0.4941 | 0.4911 ($1.59\times 10^{-135}$) | 1.3696 |
+| | Random Forest | **0.5339** | 0.4152 | **0.5283** | **0.5263 ($6.06\times 10^{-159}$)** | **1.2591** |
+
+#### 2. Regression (Targeted vs BOCPD)
+| Sampling Method | Model | Overall MSE | Pearson Correlation (PCC) | Discrete Accuracy |
+| :--- | :--- | :--- | :--- | :--- |
+| **Targeted** | LSTM (Run 3) | 1.5598 | nan (nan) | 0.1881 |
+| | MLP | 1.1337 | 0.4337 ($7.87\times 10^{-103}$) | 0.3282 |
+| | SVM | **0.9009** | **0.5941 ($1.27\times 10^{-212}$)** | **0.3947** |
+| | Random Forest | 1.0032 | 0.5495 ($6.24\times 10^{-176}$) | 0.2299 |
+| **BOCPD** | LSTM (Run 4) | 1.6752 | nan (nan) | 0.1105 |
+| | MLP | 1.1901 | 0.3787 ($7.52\times 10^{-77}$) | 0.2717 |
+| | SVM | **0.8668** | **0.6213 ($5.38\times 10^{-238}$)** | **0.4158** |
+| | Random Forest | 1.0457 | 0.5066 ($1.81\times 10^{-145}$) | 0.2524 |
+
+#### 3. Binary Classification (Threshold = 1)
+| Sampling Method | Model | Accuracy | Macro F1 | Weighted F1 | Class 0 F1 | Class 1 F1 | PCC (p-value) | Overall MSE |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Targeted** | LSTM (Run 7) | 0.8473 | 0.6451 | 0.8100 | 0.3773 | 0.9130 | 0.4086 ($2.20\times 10^{-90}$) | 0.1527 |
+| | MLP | 0.8258 | 0.5470 | 0.7658 | 0.1917 | 0.9024 | 0.2717 ($5.40\times 10^{-39}$) | 0.1742 |
+| | SVM | **0.8702** | **0.7609** | **0.8604** | **0.5992** | **0.9226** | **0.5384 ($1.30\times 10^{-167}$)** | **0.1298** |
+| | Random Forest | 0.8693 | 0.7496 | 0.8562 | 0.5764 | 0.9228 | 0.5269 ($2.36\times 10^{-159}$) | 0.1307 |
+| **BOCPD** | LSTM (Run 8) | 0.8442 | 0.6525 | 0.8114 | 0.3944 | 0.9106 | 0.3932 ($2.94\times 10^{-83}$) | 0.1558 |
+| | MLP | 0.8159 | 0.5414 | 0.7598 | 0.1865 | 0.8962 | 0.2033 ($3.27\times 10^{-22}$) | 0.1841 |
+| | SVM | **0.8729** | **0.7535** | **0.8591** | **0.5820** | **0.9251** | **0.5394 ($2.52\times 10^{-168}$)** | **0.1271** |
+| | Random Forest | 0.8568 | 0.7312 | 0.8443 | 0.5475 | 0.9149 | 0.4826 ($2.61\times 10^{-130}$) | 0.1432 |
+
+#### 4. Binary Classification (Threshold = 2)
+| Sampling Method | Model | Accuracy | Macro F1 | Weighted F1 | Class 0 F1 | Class 1 F1 | PCC (p-value) | Overall MSE |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Targeted** | LSTM (Run 5) | 0.7490 | 0.5888 | 0.6901 | 0.3321 | 0.8455 | 0.3365 ($4.32\times 10^{-60}$) | 0.2510 |
+| | MLP | 0.7414 | 0.5687 | 0.6764 | 0.2958 | 0.8416 | 0.3077 ($4.81\times 10^{-50}$) | 0.2586 |
+| | SVM | **0.7899** | **0.7092** | **0.7696** | **0.5560** | **0.8624** | **0.4625 ($1.97\times 10^{-118}$)** | **0.2101** |
+| | Random Forest | 0.7625 | 0.7037 | 0.7558 | 0.5717 | 0.8357 | 0.4125 ($3.06\times 10^{-92}$) | 0.2375 |
+| **BOCPD** | LSTM (Run 6) | 0.7234 | 0.5396 | 0.6544 | 0.2488 | 0.8305 | 0.2283 ($1.01\times 10^{-27}$) | 0.2766 |
+| | MLP | 0.7535 | 0.6082 | 0.7024 | 0.3697 | 0.8468 | 0.3490 ($8.89\times 10^{-65}$) | 0.2465 |
+| | SVM | **0.7777** | **0.7007** | **0.7606** | **0.5488** | **0.8525** | **0.4310 ($1.94\times 10^{-101}$)** | **0.2223** |
+| | Random Forest | 0.7364 | 0.6775 | 0.7319 | 0.5396 | 0.8154 | 0.3570 ($6.65\times 10^{-68}$) | 0.2636 |
+
+#### 5. Binary Classification (Threshold = 3)
+| Sampling Method | Model | Accuracy | Macro F1 | Weighted F1 | Class 0 F1 | Class 1 F1 | PCC (p-value) | Overall MSE |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Targeted** | LSTM (Run 9) | 0.6533 | 0.6482 | 0.6490 | 0.6057 | 0.6907 | 0.3105 ($5.82\times 10^{-51}$) | 0.3467 |
+| | MLP | 0.6071 | 0.5998 | 0.6008 | 0.5459 | 0.6537 | 0.2165 ($4.86\times 10^{-25}$) | 0.3929 |
+| | SVM | **0.6933** | **0.6921** | **0.6918** | **0.7112** | **0.6730** | **0.3933 ($2.73\times 10^{-83}$)** | **0.3067** |
+| | Random Forest | 0.6147 | 0.5926 | 0.5909 | 0.6875 | 0.4977 | 0.2725 ($3.16\times 10^{-39}$) | 0.3853 |
+| **BOCPD** | LSTM (Run 10) | 0.6533 | 0.6487 | 0.6494 | 0.6081 | 0.6892 | 0.3099 ($8.94\times 10^{-51}$) | 0.3467 |
+| | MLP | **0.6960** | **0.6910** | **0.6918** | 0.6519 | **0.7302** | **0.3989 ($7.76\times 10^{-86}$)** | **0.3040** |
+| | SVM | 0.6902 | 0.6879 | 0.6874 | **0.7146** | 0.6611 | 0.3910 ($2.94\times 10^{-82}$) | 0.3098 |
+| | Random Forest | 0.6098 | 0.5848 | 0.5830 | 0.6866 | 0.4830 | 0.2660 ($2.25\times 10^{-37}$) | 0.3902 |
+
+### Key Observations & Insights
+
+- **Baseline Superiority**: Traditional models (SVM and Random Forest) trained on average-pooled features significantly outperform deep learning sequence models (LSTM and MLP) on this task. 
+- **LSTM Optimization Challenges**: In multi-class classification and regression, the LSTM struggled with model collapse (converging to constant predictions, leading to `nan` PCC). In contrast, SVM (PCC up to `0.6213` in regression) and Random Forest (accuracy up to `53.88%` in multi-class classification) handled the temporal segments robustly.
+- **Why Traditional Models Perform Better**: Because the sequence length in the temporal subsets is extremely short (at most 3 frames), the sequence modeling capabilities of LSTM provide little advantage, while the high feature dimensionality (1518 dimensions) combined with standard scaling makes SVM with RBF kernels highly effective.
+- **Targeted vs BOCPD**: The relative performance of Targeted Sampling vs BOCPD remains close across baseline models, with Targeted showing slight advantages in threshold 1 & 2 binary tasks, whereas BOCPD shows higher performance in threshold 3 tasks (especially with the MLP).
+
+
+
 
 
