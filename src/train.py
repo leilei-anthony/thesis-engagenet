@@ -122,7 +122,7 @@ def main():
             criterion = WeightedMSELoss(weight_class_0=2.0)
         
     optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3, verbose=True)
+    scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=3)
     
     # 4. Training Loop
     best_val_loss = float('inf')

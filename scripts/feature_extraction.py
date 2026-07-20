@@ -427,6 +427,7 @@ if __name__ == "__main__":
         "Train": "train_engagement_labels.xlsx",
         "Validation": "validation_engagement_labels.xlsx",
         "Test": "test_engagement_labels.csv",
+        "Test_Subset": "validation_engagement_labels.xlsx",
     }
     LABELS_FILE = LABELS_MAP[SPLIT]
     
@@ -437,7 +438,7 @@ if __name__ == "__main__":
     FRAME_SKIP = 2         
     FAST_REMBG = True      
     MP_COMPLEXITY = 1      
-    MAX_CONCURRENT_VIDEOS = 4 # Lowered to 1 due to continuous freezing
+    MAX_CONCURRENT_VIDEOS = 8  # Increased to 8 to utilize CPU cores
     # ------------------------------------
     
     output_subdir = f"{NUM_CHANGEPOINTS}_Changepoint_Dataset_{SPLIT}" if EXTRACTION_MODE == "changepoint" else f"Targeted_Dataset_{SPLIT}"
@@ -488,38 +489,70 @@ if __name__ == "__main__":
     tasks =[(vp, worker_config, INPUT_DIR) for vp in video_paths]
     all_results =[]
     
-    # START ROBUST SEQUENTIAL PROCESSING (WITH HARD TIMEOUT TO PREVENT DEADLOCKS)
+    # START ROBUST PARALLEL PROCESSING (WITH HARD TIMEOUT TO PREVENT DEADLOCKS)
     import tempfile
-    for i, task in enumerate(tasks):
-        temp_file = os.path.join(tempfile.gettempdir(), f"engagenet_temp_{i}.pkl")
-        p = multiprocessing.Process(target=process_with_timeout_wrapper, args=(task, temp_file))
-        p.start()
-        
-        # Wait up to 15 minutes (900 seconds) for the video to process
-        p.join(timeout=900)
-        
-        if p.is_alive():
-            print(f"[{i+1}/{len(video_paths)}] TIMEOUT/FROZEN: {Path(task[0]).name}. Terminating...")
-            p.terminate()
-            p.join()
-            print(f"[{i+1}/{len(video_paths)}] Skipped (Timeout): {Path(task[0]).name}")
-            continue
+    import time
+    
+    active_processes = []
+    task_index = 0
+    start_times = {}
+    
+    while task_index < len(tasks) or active_processes:
+        # Fill the process queue up to MAX_CONCURRENT_VIDEOS
+        while len(active_processes) < MAX_CONCURRENT_VIDEOS and task_index < len(tasks):
+            task = tasks[task_index]
+            temp_file = os.path.join(tempfile.gettempdir(), f"engagenet_temp_{task_index}.pkl")
+            # Ensure clean start
+            if os.path.exists(temp_file):
+                try: os.remove(temp_file)
+                except: pass
+                
+            p = multiprocessing.Process(target=process_with_timeout_wrapper, args=(task, temp_file))
+            p.start()
             
-        if os.path.exists(temp_file):
-            try:
-                with open(temp_file, 'rb') as f:
-                    video_path, df = pickle.load(f)
-                if df is not None:
-                    all_results.append(df)
-                    print(f"[{i+1}/{len(video_paths)}] Successfully finished: {Path(video_path).name}")
+            active_processes.append((p, temp_file, task, task_index))
+            start_times[task_index] = time.time()
+            task_index += 1
+            
+        # Check active processes
+        still_active = []
+        for p, temp_file, task, idx in active_processes:
+            p.join(timeout=0.1)
+            
+            if p.is_alive():
+                # Check for timeout (300 seconds)
+                elapsed = time.time() - start_times[idx]
+                if elapsed > 300:
+                    print(f"[{idx+1}/{len(video_paths)}] TIMEOUT/FROZEN: {Path(task[0]).name}. Terminating...")
+                    p.terminate()
+                    p.join()
+                    print(f"[{idx+1}/{len(video_paths)}] Skipped (Timeout): {Path(task[0]).name}")
+                    if os.path.exists(temp_file):
+                        try: os.remove(temp_file)
+                        except: pass
                 else:
-                    print(f"[{i+1}/{len(video_paths)}] Skipped (No valid frames/error): {Path(task[0]).name}")
-            except Exception as e:
-                print(f"[{i+1}/{len(video_paths)}] FAILED completely: {Path(task[0]).name} - {e}")
-            finally:
-                os.remove(temp_file)
-        else:
-            print(f"[{i+1}/{len(video_paths)}] FAILED (Process crashed without temp file): {Path(task[0]).name}")
+                    still_active.append((p, temp_file, task, idx))
+            else:
+                # Process finished successfully or crashed
+                if os.path.exists(temp_file):
+                    try:
+                        with open(temp_file, 'rb') as f:
+                            video_path, df = pickle.load(f)
+                        if df is not None:
+                            all_results.append(df)
+                            print(f"[{idx+1}/{len(video_paths)}] Successfully finished: {Path(video_path).name}")
+                        else:
+                            print(f"[{idx+1}/{len(video_paths)}] Skipped (No valid frames/error): {Path(task[0]).name}")
+                    except Exception as e:
+                        print(f"[{idx+1}/{len(video_paths)}] FAILED completely: {Path(task[0]).name} - {e}")
+                    finally:
+                        try: os.remove(temp_file)
+                        except: pass
+                else:
+                    print(f"[{idx+1}/{len(video_paths)}] FAILED (Process crashed without temp file): {Path(task[0]).name}")
+                    
+        active_processes = still_active
+        time.sleep(0.5)
 
     # Combine all DataFrames
     if all_results:
