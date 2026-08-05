@@ -35,6 +35,9 @@ def parse_args():
     parser.add_argument('--restrict_to_common', action='store_true',
                         help="Restrict to videos covered by every sampling method, so sampling "
                              "conditions are compared on identical clips")
+    parser.add_argument('--dump_preds', type=str, default=None,
+                        help="Optional path to write per-sample predictions as CSV, for paired "
+                             "significance testing (McNemar)")
     return parser.parse_args()
 
 def apply_smote(X_train, y_train):
@@ -145,7 +148,28 @@ def main():
 
     # 4. Inference
     preds = model.predict(X_test_scaled)
-    
+
+    # Optionally persist per-sample predictions for paired significance testing
+    # (McNemar). extract_pooled_features preserves dataset order, so row order
+    # matches test_dataset.video_ids.
+    if args.dump_preds:
+        import csv
+        video_ids = test_dataset.video_ids
+        if len(video_ids) != len(preds):
+            raise RuntimeError(
+                f"Prediction/video-id length mismatch ({len(preds)} vs {len(video_ids)}); "
+                "refusing to write a misaligned prediction dump."
+            )
+        dump_path = Path(args.dump_preds)
+        dump_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(dump_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['video_id', 'y_true', 'y_pred'])
+            for vid, y_t, y_p in zip(video_ids, y_test, preds):
+                writer.writerow([vid, y_t, y_p])
+        print(f"Wrote {len(preds)} per-sample predictions to {dump_path}")
+
+
     # 5. Metrics Computation
     overall_mse = np.mean((preds - y_test) ** 2)
     
