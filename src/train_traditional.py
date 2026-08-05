@@ -1,4 +1,5 @@
 import os
+import time
 import argparse
 from pathlib import Path
 import numpy as np
@@ -10,6 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC, SVR
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support, accuracy_score
+from imblearn.over_sampling import SMOTE
 
 from dataset import EngagementDataset
 
@@ -28,7 +30,26 @@ def parse_args():
     parser.add_argument('--model', type=str, required=True, choices=['svm', 'rf'],
                         help="Traditional ML baseline model: svm, rf")
     parser.add_argument('--no_class_weights', action='store_true', help="Disable class weighting / sample weighting")
+    parser.add_argument('--use_smote', action='store_true',
+                        help="Apply SMOTE oversampling to the training split (classification mode only)")
     return parser.parse_args()
+
+def apply_smote(X_train, y_train):
+    """
+    Oversamples the training split with SMOTE so every class has as many
+    samples as the majority class. Classification only (SMOTE needs discrete labels).
+    """
+    class_counts = np.bincount(y_train.astype(int))
+    min_class_count = class_counts[class_counts > 0].min()
+    if min_class_count < 2:
+        print(f"Skipping SMOTE: smallest class has only {min_class_count} sample(s), need >= 2.")
+        return X_train, y_train
+    k_neighbors = min(5, min_class_count - 1)
+    print(f"Applying SMOTE (k_neighbors={k_neighbors}). Class counts before: {class_counts}")
+    smote = SMOTE(random_state=42, k_neighbors=k_neighbors)
+    X_res, y_res = smote.fit_resample(X_train, y_train)
+    print(f"Class counts after SMOTE: {np.bincount(y_res.astype(int))}")
+    return X_res, y_res
 
 def extract_pooled_features(dataset):
     """
@@ -77,7 +98,15 @@ def main():
     X_train_scaled = scaler.fit_transform(X_train)
     X_val_scaled = scaler.transform(X_val)
     X_test_scaled = scaler.transform(X_test)
-    
+
+    # 2b. Optional SMOTE oversampling of the training split (classification only)
+    training_start_time = time.time()
+    if args.use_smote:
+        if args.mode == 'classification':
+            X_train_scaled, y_train = apply_smote(X_train_scaled, y_train)
+        else:
+            print("--use_smote was set but mode is 'regression'; SMOTE requires discrete labels, skipping.")
+
     # 3. Model Initialization and Fitting
     if args.model == 'svm':
         if args.mode == 'classification':
@@ -103,7 +132,8 @@ def main():
                 model.fit(X_train_scaled, y_train, sample_weight=sample_weight)
             else:
                 model.fit(X_train_scaled, y_train)
-                
+    training_time = time.time() - training_start_time
+
     # 4. Inference
     preds = model.predict(X_test_scaled)
     
@@ -145,6 +175,7 @@ def main():
     print("="*40)
     print(f"Overall MSE: {overall_mse:.4f}")
     print(f"Pearson Correlation (PCC): {pcc:.4f} (p-value: {p_val:.4g})")
+    print(f"Training Time: {training_time:.2f} seconds ({training_time / 60:.2f} minutes)")
     print(f"Accuracy: {accuracy:.4f}")
     print("\nClass-wise Metrics:")
     for c in range(num_classes):
@@ -171,10 +202,11 @@ def main():
         suffix = ""
         
     if args.no_class_weights:
-        plot_name = f"confusion_matrix_{args.model}_{args.sampling_method}_{args.mode}{suffix}_unweighted.png"
-    else:
-        plot_name = f"confusion_matrix_{args.model}_{args.sampling_method}_{args.mode}{suffix}.png"
-        
+        suffix += "_unweighted"
+    if args.use_smote and args.mode == 'classification':
+        suffix += "_smote"
+    plot_name = f"confusion_matrix_{args.model}_{args.sampling_method}_{args.mode}{suffix}.png"
+
     sns.heatmap(
         cm, 
         annot=True, 

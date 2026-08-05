@@ -28,6 +28,8 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=64, help="Batch size for evaluation")
     parser.add_argument('--hidden_dim', type=int, default=64, help="LSTM hidden state dimension")
     parser.add_argument('--no_class_weights', action='store_true', help="Disable class weighting in loss functions")
+    parser.add_argument('--use_smote', action='store_true',
+                        help="Locate the checkpoint trained with --use_smote (test data itself is never resampled)")
     parser.add_argument('--device', type=str, default=None, help="Device to use (cpu, mps, cuda)")
     parser.add_argument('--model', type=str, default='lstm', choices=['lstm', 'mlp'],
                         help="Model architecture to evaluate")
@@ -64,6 +66,8 @@ def main():
         checkpoint_name += f"_binary_thresh{args.binarize_threshold}"
     if args.no_class_weights:
         checkpoint_name += "_unweighted"
+    if args.use_smote and args.mode == 'classification':
+        checkpoint_name += "_smote"
     checkpoint_name += ".pt"
     checkpoint_path = str(OUTPUT_DIR / checkpoint_name)
     
@@ -154,7 +158,10 @@ def main():
     print("="*40)
     print(f"Overall MSE: {overall_mse:.4f}")
     print(f"Pearson Correlation (PCC): {pcc:.4f} (p-value: {p_val:.4g})")
-    
+    training_time = checkpoint.get('training_time_seconds')
+    if training_time is not None:
+        print(f"Training Time: {training_time:.2f} seconds ({training_time / 60:.2f} minutes)")
+
     if args.mode == 'classification' or args.mode == 'regression':
         print(f"Accuracy: {accuracy:.4f}")
         print("\nClass-wise Metrics:")
@@ -184,10 +191,11 @@ def main():
         suffix = ""
         
     if args.no_class_weights:
-        plot_name = f"confusion_matrix_{args.model}_{args.sampling_method}_{args.mode}{suffix}_unweighted.png"
-    else:
-        plot_name = f"confusion_matrix_{args.model}_{args.sampling_method}_{args.mode}{suffix}.png"
-        
+        suffix += "_unweighted"
+    if args.use_smote and args.mode == 'classification':
+        suffix += "_smote"
+    plot_name = f"confusion_matrix_{args.model}_{args.sampling_method}_{args.mode}{suffix}.png"
+
     sns.heatmap(
         cm, 
         annot=True, 

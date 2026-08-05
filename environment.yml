@@ -13,4 +13,5 @@ dependencies:
   - scipy
   - matplotlib
   - seaborn
+  - imbalanced-learn
   - pip

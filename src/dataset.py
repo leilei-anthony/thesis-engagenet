@@ -27,6 +27,20 @@ class EngagementDataset(Dataset):
         self.data_dir = str(data_dir) if data_dir is not None else str(DEFAULT_DATA_DIR)
         self.binarize_threshold = binarize_threshold
         
+        # Determine maximum sequence length. Default is 3 (legacy behavior).
+        # For changepoint sampling (e.g. '5-changepoint') use the numeric prefix
+        # so that 5/7 changepoint datasets produce sequences of length 5/7.
+        self.max_seq_len = 3
+        if 'changepoint' in self.sampling_method:
+            try:
+                prefix = self.sampling_method.split('-')[0]
+                cp_count = int(prefix)
+                # sanity: require at least 1, but preserve legacy minimum of 3
+                self.max_seq_len = max(1, cp_count)
+            except Exception:
+                # fallback to default if parsing fails
+                self.max_seq_len = 3
+        
         # Determine the CSV filename
         if 'changepoint' in self.sampling_method:
             filename = f"{self.sampling_method}-{self.split}.csv"
@@ -80,9 +94,10 @@ class EngagementDataset(Dataset):
             label = group['label_idx'].iloc[0]
             seq_len = len(features)
             
-            # Dynamic padding to max sequence length of 3 (standard for EngageNet temporal subsets)
-            padded_features = np.zeros((3, features.shape[1]), dtype=np.float32)
-            actual_len = min(seq_len, 3)
+            # Dynamic padding to `self.max_seq_len` frames so changepoint datasets
+            # (e.g. 5-changepoint, 7-changepoint) preserve all selected frames.
+            padded_features = np.zeros((self.max_seq_len, features.shape[1]), dtype=np.float32)
+            actual_len = min(seq_len, self.max_seq_len)
             padded_features[:actual_len, :] = features[:actual_len, :]
             
             self.sequences.append(padded_features)
