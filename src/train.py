@@ -1,5 +1,6 @@
 import os
 import time
+import random
 from pathlib import Path
 import argparse
 import numpy as np
@@ -70,10 +71,33 @@ def apply_smote_to_dataset(dataset, num_classes):
     dataset.lengths = torch.tensor(len_res, dtype=torch.long)
     return dataset
 
+def set_seed(seed):
+    """
+    Seeds every source of randomness that affects a training run: Python's RNG,
+    NumPy, and torch (CPU + CUDA). Without this, LSTM/MLP weight initialisation
+    and batch ordering vary run to run, which is fatal for an ablation whose
+    effects are on the order of a single accuracy point.
+
+    Returns a torch.Generator seeded identically, to be handed to the DataLoader
+    so that shuffle order is reproducible too.
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+    generator = torch.Generator()
+    generator.manual_seed(seed)
+    return generator
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Train Engagement LSTM Model")
     parser.add_argument('--sampling_method', type=str, required=True,
-                        help="Temporal sampling method to use (e.g. targeted, bocpd, 5-changepoint)")
+                        help="Temporal sampling method: targeted, 3-changepoint, 5-changepoint, 7-changepoint")
     parser.add_argument('--mode', type=str, default='classification', choices=['classification', 'regression'],
                         help="Task mode: classification (4 classes) or regression (continuous)")
     parser.add_argument('--binarize_threshold', type=int, default=None, choices=[1, 2, 3],
@@ -90,10 +114,20 @@ def parse_args():
     parser.add_argument('--device', type=str, default=None, help="Device to use (cpu, mps, cuda)")
     parser.add_argument('--model', type=str, default='lstm', choices=['lstm', 'mlp'],
                         help="Model architecture to use")
+    parser.add_argument('--seed', type=int, default=42,
+                        help="Random seed for weight init, dropout and batch shuffling")
+    parser.add_argument('--restrict_to_common', action='store_true',
+                        help="Restrict to videos covered by every sampling method, so sampling "
+                             "conditions are compared on identical clips")
+    parser.add_argument('--readout', type=str, default='mean', choices=['mean', 'last', 'attention'],
+                        help="LSTM temporal readout: mean-pool over timesteps (default, legacy), "
+                             "last valid hidden state, or learned attention. Ignored for --model mlp.")
     return parser.parse_args()
 
 def main():
     args = parse_args()
+    loader_generator = set_seed(args.seed)
+    print(f"Random seed: {args.seed}")
     if args.device is not None:
         device = torch.device(args.device)
     else:
@@ -110,8 +144,12 @@ def main():
 
     # 1. Load Data
     print(f"Creating loaders for {args.sampling_method} sampling in {args.mode} mode...")
-    train_dataset = EngagementDataset(args.sampling_method, 'train', binarize_threshold=args.binarize_threshold)
-    val_dataset = EngagementDataset(args.sampling_method, 'validation', binarize_threshold=args.binarize_threshold)
+    train_dataset = EngagementDataset(args.sampling_method, 'train',
+                                      binarize_threshold=args.binarize_threshold,
+                                      restrict_to_common=args.restrict_to_common)
+    val_dataset = EngagementDataset(args.sampling_method, 'validation',
+                                    binarize_threshold=args.binarize_threshold,
+                                    restrict_to_common=args.restrict_to_common)
 
     if args.use_smote:
         if args.mode == 'classification':
@@ -119,8 +157,9 @@ def main():
         else:
             print("--use_smote was set but mode is 'regression'; SMOTE requires discrete labels, skipping.")
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, drop_last=False)
-    val_loader = get_dataloader(args.sampling_method, 'validation', batch_size=args.batch_size, shuffle=False, binarize_threshold=args.binarize_threshold)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True,
+                              drop_last=False, generator=loader_generator)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, drop_last=False)
     
     # 2. Setup Class Weights
     train_labels = train_dataset.labels.numpy()
@@ -151,12 +190,14 @@ def main():
         ).to(device)
     else:
         model = EngagementLSTM(
-            input_dim=1518, 
-            hidden_dim=args.hidden_dim, 
-            num_layers=1, 
-            num_classes=num_classes, 
-            mode=args.mode
+            input_dim=1518,
+            hidden_dim=args.hidden_dim,
+            num_layers=1,
+            num_classes=num_classes,
+            mode=args.mode,
+            readout=args.readout
         ).to(device)
+        print(f"LSTM temporal readout: {args.readout}")
     
     if args.mode == 'classification':
         if args.no_class_weights:
@@ -183,6 +224,12 @@ def main():
         checkpoint_name += "_unweighted"
     if args.use_smote and args.mode == 'classification':
         checkpoint_name += "_smote"
+    # Disambiguate non-default readouts and non-default seeds so that multi-seed
+    # and readout-ablation runs do not overwrite one another's checkpoints.
+    if args.model == 'lstm' and args.readout != 'mean':
+        checkpoint_name += f"_readout-{args.readout}"
+    if args.seed != 42:
+        checkpoint_name += f"_seed{args.seed}"
     checkpoint_name += ".pt"
     
     checkpoint_path = str(OUTPUT_DIR / checkpoint_name)

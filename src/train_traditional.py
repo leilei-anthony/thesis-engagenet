@@ -22,7 +22,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 def parse_args():
     parser = argparse.ArgumentParser(description="Train and Evaluate Traditional ML Baselines (SVM, RF)")
     parser.add_argument('--sampling_method', type=str, required=True,
-                        help="Temporal sampling method to use (e.g. targeted, bocpd, 5-changepoint)")
+                        help="Temporal sampling method: targeted, 3-changepoint, 5-changepoint, 7-changepoint")
     parser.add_argument('--mode', type=str, default='classification', choices=['classification', 'regression'],
                         help="Task mode: classification or regression")
     parser.add_argument('--binarize_threshold', type=int, default=None, choices=[1, 2, 3],
@@ -32,6 +32,9 @@ def parse_args():
     parser.add_argument('--no_class_weights', action='store_true', help="Disable class weighting / sample weighting")
     parser.add_argument('--use_smote', action='store_true',
                         help="Apply SMOTE oversampling to the training split (classification mode only)")
+    parser.add_argument('--restrict_to_common', action='store_true',
+                        help="Restrict to videos covered by every sampling method, so sampling "
+                             "conditions are compared on identical clips")
     return parser.parse_args()
 
 def apply_smote(X_train, y_train):
@@ -85,9 +88,15 @@ def main():
     print(f"--- Training {args.model.upper()} ({args.sampling_method.upper()} - {args.mode.upper()} - {bin_str}) ---")
     
     # 1. Load splits
-    train_dataset = EngagementDataset(args.sampling_method, 'train', binarize_threshold=args.binarize_threshold)
-    val_dataset = EngagementDataset(args.sampling_method, 'validation', binarize_threshold=args.binarize_threshold)
-    test_dataset = EngagementDataset(args.sampling_method, 'test', binarize_threshold=args.binarize_threshold)
+    train_dataset = EngagementDataset(args.sampling_method, 'train',
+                                      binarize_threshold=args.binarize_threshold,
+                                      restrict_to_common=args.restrict_to_common)
+    val_dataset = EngagementDataset(args.sampling_method, 'validation',
+                                    binarize_threshold=args.binarize_threshold,
+                                    restrict_to_common=args.restrict_to_common)
+    test_dataset = EngagementDataset(args.sampling_method, 'test',
+                                     binarize_threshold=args.binarize_threshold,
+                                     restrict_to_common=args.restrict_to_common)
     
     X_train, y_train = extract_pooled_features(train_dataset)
     X_val, y_val = extract_pooled_features(val_dataset)

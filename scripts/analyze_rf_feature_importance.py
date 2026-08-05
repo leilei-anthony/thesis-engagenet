@@ -53,6 +53,8 @@ def parse_args():
     p.add_argument("--mode", type=str, default="classification", choices=["classification", "regression"])
     p.add_argument("--binarize_threshold", type=int, default=3, choices=[1, 2, 3])
     p.add_argument("--no_class_weights", action="store_true", default=True)
+    p.add_argument("--restrict_to_common", action="store_true",
+                   help="Restrict to videos covered by every sampling method")
     p.add_argument("--top_n", type=int, default=25)
     p.add_argument("--tree_max_depth", type=int, default=3,
                    help="Display depth only -- the underlying tree is trained unrestricted, same as train_traditional.py")
@@ -77,15 +79,12 @@ def main():
     print(f"Training RF ({args.sampling_method} / {args.mode} / thresh={args.binarize_threshold}) "
           f"to inspect feature importance...")
 
-    train_dataset = EngagementDataset(args.sampling_method, "train", binarize_threshold=args.binarize_threshold)
-    sm = args.sampling_method.lower()
-    if "changepoint" in sm:
-        header_name = f"{sm}-train.csv"
-    elif sm == "bocpd":
-        header_name = "3-changepoint-train.csv"
-    else:
-        header_name = f"{sm}-train.csv"
-    header_csv = Path(train_dataset.data_dir) / header_name
+    train_dataset = EngagementDataset(args.sampling_method, "train",
+                                      binarize_threshold=args.binarize_threshold,
+                                      restrict_to_common=args.restrict_to_common)
+    # Sampling method is validated by EngagementDataset (which rejects the former
+    # 'bocpd' alias), so the CSV name maps directly.
+    header_csv = Path(train_dataset.data_dir) / f"{args.sampling_method.lower()}-train.csv"
     feature_names = list(pd.read_csv(header_csv, nrows=0).columns[5:-1])
 
     X_train, y_train = extract_pooled_features(train_dataset)

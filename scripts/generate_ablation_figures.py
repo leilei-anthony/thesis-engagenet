@@ -22,10 +22,11 @@ INK_MUTED = "#898781"
 GRID = "#e1e0d9"
 BASELINE = "#c3c2b7"
 
-METHOD_ORDER = ["Targeted", "BOCPD", "3-Changepoint", "5-Changepoint", "7-Changepoint"]
+# BOCPD is deliberately excluded: it was never implemented, and the former
+# 'bocpd' option silently loaded 3-changepoint data (see src/dataset.py).
+METHOD_ORDER = ["Targeted", "3-Changepoint", "5-Changepoint", "7-Changepoint"]
 METHOD_COLORS = {
     "Targeted": "#2a78d6",       # slot 1 blue
-    "BOCPD": "#eb6834",          # slot 2 orange
     "3-Changepoint": "#1baf7a",  # slot 3 aqua
     "5-Changepoint": "#eda100",  # slot 4 yellow
     "7-Changepoint": "#e87ba4",  # slot 5 magenta
