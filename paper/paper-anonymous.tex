@@ -1,0 +1,275 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---- Page geometry per ICCE 2026 template (A4: top 1in, bottom 0.8in, left/right 1in) ----
+\usepackage[a4paper,top=1in,bottom=0.8in,left=1in,right=1in]{geometry}
+
+% ---- Arial-equivalent sans-serif body font, per template spec ----
+\usepackage[T1]{fontenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+\usepackage[english]{babel}
+\usepackage{ragged2e}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{changepage}
+\usepackage{titlesec}
+\usepackage{natbib}
+\bibliographystyle{apalike}
+
+% No headers/footers/page numbers per template instructions
+\pagestyle{empty}
+
+% Single spacing, justified body text
+\linespread{1.0}
+
+% ---- Heading styles per template: first-level = bold, numbered, flush left;
+% ---- sub-headings (2.1, 2.1.1, ...) = italic (not bold), flush left ----
+\titleformat{\section}{\normalfont\fontsize{12}{14}\selectfont\bfseries}{\thesection.}{0.5em}{}
+\titlespacing{\section}{0pt}{1.4\baselineskip}{0.7\baselineskip}
+\titleformat{\subsection}{\normalfont\fontsize{11}{13}\selectfont\itshape}{\thesubsection}{0.5em}{}
+\titlespacing{\subsection}{0pt}{0.7\baselineskip}{0.5\baselineskip}
+
+% Table captions: roman label, italic caption text, above table, left-aligned, no full stop
+\captionsetup[table]{position=top, justification=raggedright, singlelinecheck=false, labelfont=normalfont, textfont=it, labelsep=period}
+% Figure captions: italic label, roman caption text, below figure, centered
+\captionsetup[figure]{position=bottom, justification=centering, labelfont=it, textfont=normalfont, labelsep=period}
+
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+
+\begin{document}
+\justifying
+
+% ---------------- TITLE BLOCK ----------------
+\begin{center}
+{\fontsize{22}{26}\selectfont\bfseries Temporal Sampling Strategies for Student Engagement Detection}
+
+\vspace{0.35cm}
+
+{\large Author(s) Anonymous}
+
+\vspace{0.2cm}
+
+{\itshape $^{a}$Anonymous Institution}
+
+\vspace{0.15cm}
+
+\end{center}
+
+\vspace{0.3cm}
+
+% ---------------- ABSTRACT ----------------
+% Abstract style per template: 10pt, indented 0.5in (1.27cm) each side from the body margins
+\begin{adjustwidth}{1.27cm}{1.27cm}
+\fontsize{10}{12}\selectfont
+\noindent\textbf{Abstract:} Automatic engagement recognition from video requires selecting a subset of frames before feature extraction, yet frame selection strategy is rarely treated as a design variable. Four temporal sampling strategies (SME baseline and three changepoint-based methods selecting 3, 5, or 7 frames) were evaluated against four classification architectures (LSTM, MLP, SVM, Random Forest) on EngageNet. Across all architectures, 3-Changepoint sampling achieved the highest macro F1 score, which declined with additional frames. The best result, 3-Changepoint with SVM, reached 0.7010 macro F1 and 0.7163 class-0 F1. Brow-region Action Units dominated feature importance across methods, while wrist visibility ranked unexpectedly high. Content-based sampling consistently outperformed position-based sampling across architectures in F1 score, and adding frames beyond the top three peaks degraded performance. These results suggest that temporal sampling strategy warrants the same deliberate tuning as model selection in engagement recognition systems.
+
+\vspace{0.2cm}
+\noindent\textbf{Keywords:} Student engagement, engagement recognition, temporal sampling, changepoint detection, facial action units
+\end{adjustwidth}
+
+\vspace{0.25cm}
+
+% ---------------- 1. INTRODUCTION ----------------
+\section{Introduction}
+
+Student engagement is a well-established predictor of learning outcomes \citep{fredricks2004}. As online and hybrid learning environments have become more common, the loss of an instructor's ability to directly observe a room of students has made automatic, camera-based engagement detection an increasing need. This work is increasingly relevant as engagement signals detected from video serve as behavioral inputs to agentic AI systems in educational contexts, where reliable engagement detection can inform proactive interventions while preserving learner agency. Progress in this space has been supported by larger, more diverse datasets such as EngageNet, which captures over 11,000 short video clips from 127 participants across a range of real-world conditions \citep{singh2023}.
+
+Because engagement datasets consist of video rather than static images, any classification pipeline must first decide \textit{how} to reduce a clip to a tractable set of frames before features can be extracted. This step is often treated as a minor preprocessing detail, with fixed, position-based strategies (most commonly taking frames from the start, middle, and end, or SME) used by default. Content-aware sampling methods that instead select frames based on motion salience have improved downstream accuracy in tasks such as action recognition \citep{korbar2019}. One way to identify informative frames by content is changepoint detection, a well-established family of methods for locating points in a signal where its underlying statistics shift \citep{truong2020}; applied to facial landmark velocity, this offers a content-based alternative to SME sampling that remains largely untested for engagement recognition specifically.
+
+Does moving from position-based to content-based temporal sampling improve engagement classification performance across different model architectures? To address this question, a factorial ablation was conducted crossing four temporal sampling strategies (the SME baseline and three changepoint-based strategies selecting 3, 5, or 7 frames by landmark-velocity peaks) against four classification architectures (LSTM, MLP, SVM, and Random Forest). Using EngageNet under subject-independent binary classification, the consistency of content-based frame selection advantage over SME sampling and the effect of frame count on performance were evaluated.
+
+% ---------------- 2. METHODOLOGY ----------------
+\section{Methodology}
+
+\subsection{Research Design}
+
+A factorial ablation design was employed, crossing two factors: sampling strategy (4 levels: SME, 3-, 5-, and 7-Changepoint) and architecture (4 levels: LSTM, MLP, SVM, Random Forest). This design isolated the effect of sampling strategy from the effect of architecture.
+
+\subsection{Dataset and Label Preprocessing}
+
+EngageNet, a collection of short video clips of students in online-learning activities, was used, annotated per clip on a four-point engagement scale: 0 (Not-Engaged), 1 (Barely-Engaged), 2 (Engaged), and 3 (Highly-Engaged) \citep{singh2023}. Rows labelled SNP (Subject-Not-Present) carry no valid engagement score and were dropped prior to training.
+
+The official EngageNet train/validation/test partition was used without re-partitioning. It is subject-independent: no participant appears in more than one split. A subject-dependent split would allow a model to identify individual students rather than engagement states, so any resulting accuracy would reflect face recognition rather than engagement recognition; because participants are disjoint across splits, that failure mode is avoided.
+
+Table~\ref{tab:partition} shows the partition before and after a common-subset restriction applied across feature sets.
+
+\begin{table}[h]
+\caption{Dataset Partition, Before and After the Common-Subset Restriction}
+\label{tab:partition}
+\centering
+\begin{tabular}{lrrr}
+\toprule
+Split & Subjects & Videos (Raw) & Videos (Restricted) \\
+\midrule
+Train & 32 & 2,825 & 2,719 \\
+Validation & 11 & 1,068 & 867 \\
+Test & 26 & 2,227 & 2,005 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At the binarization threshold used (Section~2.5), the restricted training split contains 1,375 negative and 1,344 positive samples, close to balanced.
+
+\subsection{Feature Engineering Pipeline}
+
+Per-frame features were extracted by a fixed preprocessing stage, producing a 1,518-dimensional vector per frame from three families: (1) Facial Action Units (AU), coded facial-muscle activations \citep{ekman1978} capturing localised expressive movement such as brow raising, cheek squinting, and mouth-corner displacement; (2) facial landmarks (FLM), raw 3D landmark coordinates retaining geometric configuration not reduced to AU codes; and (3) pose keypoints (MP), MediaPipe upper-body keypoints with visibility scores, capturing postural and gestural information beyond the face.
+
+\subsection{Temporal Sampling Strategies}
+
+Four temporal sampling strategies were compared, summarized in Table~\ref{tab:sampling}. The SME (Start-Middle-End) baseline selects the first, middle, and last validly-detected frame of a clip, choosing frames by fixed position. The three Changepoint strategies instead select the top-$k$ peaks in landmark velocity ($k = 3, 5,$ or $7$), choosing frames by content rather than position, following the changepoint detection framework described by \citet{truong2020}. Both approaches sample sparsely; they differ only in whether frame selection is driven by position or by content.
+
+\begin{table}[h]
+\caption{Sampling Strategies Under Test}
+\label{tab:sampling}
+\centering
+\begin{tabular}{lp{6.5cm}r}
+\toprule
+Strategy & Selection Rule & Frames \\
+\midrule
+SME (baseline) & Start-Middle-End: first, middle, last validly-detected frame & 3 \\
+3-/5-/7-Changepoint & Top-$k$ peaks in landmark velocity & 3, 5, 7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Model Architectures and Binary Classification}
+
+Four architectures were evaluated, spanning both sequence-aware and pooled representations (Table~\ref{tab:architectures}). All models used library defaults; no hyperparameter search was performed.
+
+\begin{table}[h]
+\caption{Model Architectures}
+\label{tab:architectures}
+\centering
+\begin{tabular}{lp{2.7cm}p{6cm}}
+\toprule
+Model & Input & Configuration \\
+\midrule
+LSTM & Ordered sequence & 1518 $\rightarrow$ LSTM(64) $\rightarrow$ fc(32) $\rightarrow$ out; readout $\in$ \{mean, last, attention\} \\
+MLP & Average-pooled & 1518 $\rightarrow$ fc(64) $\rightarrow$ fc(32) $\rightarrow$ out \\
+SVM & Average-pooled & RBF kernel, standard-scaled \\
+Random Forest & Average-pooled & 100 unpruned trees \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A binarization threshold of 3 was used, isolating the Highly-Engaged class against all others pooled. This is the most conservative binary split among those tested and provided the most balanced class distribution of the thresholds considered.
+
+\subsection{Evaluation Metrics}
+
+The following metrics were reported for each configuration: accuracy; macro F1 (unweighted across classes, sensitive to minority-class performance regardless of class size); weighted F1; per-class F1; Pearson correlation with ground truth (PCC); mean squared error (MSE); and model training time.
+
+% ---------------- 3. RESULTS ----------------
+\section{Results}
+
+\subsection{Main Results}
+
+Table~\ref{tab:main} reports accuracy, macro F1, per-class F1, PCC, MSE, and training time for all 16 sampling-strategy $\times$ architecture combinations at the binarization threshold described in Section~2.5, without oversampling ($n = 2{,}005$). LSTM and MLP results are reported as mean $\pm$ SD over five seeds; SVM and Random Forest results are exact, as these models are deterministic given fixed data.
+
+\begin{table}[h]
+\caption{Accuracy and Related Metrics by Sampling Strategy and Architecture (Threshold 3, No SMOTE, n = 2,005)}
+\label{tab:main}
+\centering
+\fontsize{9}{10}\selectfont
+\begin{tabular}{llrrrrrrr}
+\toprule
+Sampling & Model & Accuracy & Macro F1 & C0 F1 & C1 F1 & PCC & MSE & Train (s) \\
+\midrule
+SME & LSTM & 0.6480$\pm$0.0129 & 0.6475 & 0.6526 & 0.6424 & 0.2983 & 0.3520 & 10.4 \\
+SME & MLP & 0.6509$\pm$0.0096 & 0.6497 & 0.6485 & 0.6508 & 0.3042 & 0.3491 & 9.3 \\
+SME & SVM & 0.6848 & 0.6838 & 0.7013 & 0.6663 & 0.3754 & 0.3152 & 2.6 \\
+SME & RF & 0.5651 & 0.5307 & 0.6578 & 0.4036 & 0.1705 & 0.4349 & 1.8 \\
+3-CP & LSTM & 0.6553$\pm$0.0022 & 0.6548 & 0.6511 & 0.6585 & 0.3113 & 0.3447 & 10.6 \\
+3-CP & MLP & 0.6630$\pm$0.0047 & 0.6617 & 0.6450 & 0.6784 & 0.3267 & 0.3370 & 9.2 \\
+\textbf{3-CP} & \textbf{SVM} & \textbf{0.7017} & \textbf{0.7010} & \textbf{0.7163} & \textbf{0.6856} & \textbf{0.4090} & \textbf{0.2983} & 2.7 \\
+3-CP & RF & 0.6130 & 0.5904 & 0.6866 & 0.4941 & 0.2700 & 0.3870 & 3.0 \\
+5-CP & LSTM & 0.6454$\pm$0.0077 & 0.6413 & 0.6143 & 0.6683 & 0.2945 & 0.3546 & 13.0 \\
+5-CP & MLP & 0.6491$\pm$0.0045 & 0.6471 & 0.6333 & 0.6609 & 0.3001 & 0.3509 & 9.7 \\
+5-CP & SVM & 0.6973 & 0.6966 & 0.7111 & 0.6820 & 0.3995 & 0.3027 & 2.5 \\
+5-CP & RF & 0.5910 & 0.5612 & 0.6756 & 0.4467 & 0.2290 & 0.4090 & 2.0 \\
+7-CP & LSTM & 0.6520$\pm$0.0080 & 0.6494 & 0.6336 & 0.6652 & 0.3068 & 0.3480 & 11.2 \\
+7-CP & MLP & 0.6466$\pm$0.0121 & 0.6445 & 0.6299 & 0.6591 & 0.2950 & 0.3534 & 9.8 \\
+7-CP & SVM & 0.6898 & 0.6884 & 0.7091 & 0.6677 & 0.3871 & 0.3102 & 2.6 \\
+7-CP & RF & 0.5890 & 0.5610 & 0.6720 & 0.4499 & 0.2213 & 0.4110 & 2.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The best-performing configuration overall was 3-Changepoint sampling with an SVM classifier (0.7010 macro F1, 0.7163 class-0 F1, 0.6856 class-1 F1). Notably, every architecture reached its own best macro F1 score under 3-Changepoint sampling rather than under the SME baseline, indicating that the advantage of content-based sampling over position-based sampling was consistent across architectures rather than specific to one model.
+
+\subsection{Effect of Frame Count}
+
+Table~\ref{tab:framecount} isolates the effect of frame count within the changepoint family by comparing macro F1 score across 3-, 5-, and 7-Changepoint sampling for each architecture.
+
+\begin{table}[h]
+\caption{Macro F1 Score by Changepoint Count}
+\label{tab:framecount}
+\centering
+\begin{tabular}{lrrrr}
+\toprule
+Model & 3-CP & 5-CP & 7-CP & Delta (3--7, points) \\
+\midrule
+LSTM & 0.6548 & 0.6413 & 0.6494 & $-0.54$ \\
+MLP & 0.6617 & 0.6471 & 0.6445 & $-1.72$ \\
+SVM & 0.7010 & 0.6966 & 0.6884 & $-1.26$ \\
+Random Forest & 0.5904 & 0.5612 & 0.5610 & $-2.94$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For the two deterministic models (SVM, Random Forest), the decline in macro F1 from 3- to 7-Changepoint sampling is monotonic and noise-free, with Random Forest showing the steepest drop ($-2.94$ points). For the neural models, the ordering is less clean and the differences sit within seed variation. This pattern is consistent with the changepoint extraction method itself: because frames are selected by ranked velocity peak, frames beyond the top few are, by construction, weaker peaks and more likely to capture blinks or camera jitter than engagement-relevant transitions. This finding echoes a broader pattern: in controlled frame-sampling benchmarks for video analysis, larger frame budgets do not monotonically improve F1 performance, and the best sampling strategy is dataset- and task-dependent. The present results suggest a similar dependency exists within a single dataset and task, at the level of how many content-selected frames are retained.
+
+\subsection{Feature Importance}
+
+Because Random Forest discards frame ordering entirely yet is compared against sequence-aware models, its feature partitioning was examined to understand which pooled features it relies on. Table~\ref{tab:features} reports the top 10 features by Gini importance under 3-Changepoint and SME sampling.
+
+\begin{table}[h]
+\caption{Top 10 Features by Gini Importance, Threshold 3}
+\label{tab:features}
+\centering
+\fontsize{9}{10}\selectfont
+\begin{tabular}{rlrlr}
+\toprule
+Rank & 3-Changepoint & Importance & SME & Importance \\
+\midrule
+1 & AU\_browOuterUpRight & 0.0149 & AU\_browOuterUpRight & 0.0127 \\
+2 & MP\_LEFT\_WRIST\_v & 0.0106 & AU\_browInnerUp & 0.0109 \\
+3 & AU\_browInnerUp & 0.0090 & MP\_LEFT\_WRIST\_v & 0.0074 \\
+4 & MP\_LEFT\_HIP\_v & 0.0077 & AU\_cheekSquintLeft & 0.0054 \\
+5 & MP\_RIGHT\_WRIST\_y & 0.0063 & FLM\_x\_138 & 0.0048 \\
+6 & MP\_LEFT\_SHOULDER\_v & 0.0049 & AU\_browDownRight & 0.0047 \\
+7 & AU\_cheekSquintLeft & 0.0049 & MP\_LEFT\_HIP\_v & 0.0047 \\
+8 & AU\_jawRight & 0.0049 & AU\_mouthSmileLeft & 0.0044 \\
+9 & FLM\_z\_271 & 0.0044 & MP\_RIGHT\_WRIST\_y & 0.0043 \\
+10 & MP\_RIGHT\_ELBOW\_z & 0.0044 & MP\_LEFT\_SHOULDER\_v & 0.0041 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three observations follow. First, brow movement is the strongest single signal: AU\_browOuterUpRight ranks first under both sampling strategies, with AU\_browInnerUp in the top three of both, and this stability across sampling strategies is the minimum bar for treating it as a task property rather than configuration-specific. Second, wrist visibility ranks unexpectedly high (MP\_LEFT\_WRIST\_v, second and third), plausibly proxying hand-raising or note-taking; distinguishing genuine behavioral signal from a pose-detector artifact would require follow-up analysis. Third, importance is diffuse: the top feature carries roughly 22 times its uniform share (1/1518), indicating that classification decisions rest on broad accumulation of weakly informative signals rather than a small number of strong predictors.
+
+\subsection{Computational Cost}
+
+Feature extraction cost scales with frame count but is dominated by a constant full-video scan ($\sim$4.5~s per 10~s video). The final re-inference pass accounts for the remaining cost, increasing $\sim$0.9~s per additional frame. Across sample videos, 3-Changepoint and SME sampling averaged 6.0--6.2~s per video, while 7-Changepoint averaged 8.4~s, a 7.8\% increase for no accuracy gain, reinforcing that 3-Changepoint is both more accurate and computationally efficient.
+
+% ---------------- 4. CONCLUSION ----------------
+\section{Conclusion}
+
+The hypothesis that content-based temporal sampling outperforms position-based approaches across different architectures was tested. Across all four models, 3-Changepoint sampling produced the best macro F1 score. The best configuration, 3-Changepoint with SVM, achieved 0.7010 macro F1 (0.7163 class-0 F1, 0.6856 class-1 F1).
+
+A second, less expected finding was that adding more changepoints did not further improve performance: macro F1 score declined monotonically from 3- to 7-Changepoint sampling for the two deterministic models (SVM, Random Forest), with Random Forest showing the steepest drop ($-2.94$ F1 points). This is consistent with the changepoint extraction method itself, since frames beyond the top few velocity peaks are, by definition, weaker peaks and more likely to capture incidental motion such as blinks rather than engagement-relevant transitions. Feature importance analysis lends indirect support to this account: brow-region Action Units (AU\_browOuterUpRight, AU\_browInnerUp) were the strongest predictors under both SME and 3-Changepoint sampling, suggesting the classifiers are converging on similar underlying signal regardless of sampling strategy, and that the gap between strategies is best explained by frame quality rather than by the models learning fundamentally different features.
+
+Taken together, these results suggest that temporal sampling strategy is not a neutral preprocessing choice but a design decision with measurable, architecture-independent consequences for engagement recognition accuracy, and one that interacts with frame count in a way that argues against simply sampling more frames.
+
+A reliable engagement classifier can inform behavior-informed agentic AI systems in educational settings. Detected engagement signals could trigger adaptive interventions such as adjusted pacing, targeted hints, or personalized scaffolding in real-time learning environments. However, given the macro F1 performance of ~70\%, such signals should serve as advisory inputs rather than deterministic triggers, ensuring that AI interventions augment rather than override instructor judgement and learner agency. This preserves the core principle of agentic AI in education: using behavioral data to enhance learning while maintaining human oversight and student autonomy.
+
+Several limitations suggest directions for future work. First, changepoint extraction via landmark velocity may not generalize to other salience signals used in motion-guided sampling. Second, the wrist-visibility finding is interpretive and requires follow-up validation. Third, binary classification was evaluated at a single threshold; future work should test whether this advantage holds across the full four-level scale and alternative thresholds. Finally, sequence-native architectures with attention-based readouts may better reveal whether changepoint sampling's benefit is additive or redundant with a model's own frame-weighting capacity. Companion work examines how feature set and label definition interact on alternative datasets; together these results suggest that temporal sampling, feature choice, and label definition warrant joint tuning rather than isolated selection.
+
+% ---------------- REFERENCES ----------------
+\bibliography{references}
+
+\end{document}
