@@ -13,4 +13,6 @@ dependencies:
   - scipy
   - matplotlib
   - seaborn
+  - imbalanced-learn
+  - pytest
   - pip

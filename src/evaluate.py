@@ -28,9 +28,21 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=64, help="Batch size for evaluation")
     parser.add_argument('--hidden_dim', type=int, default=64, help="LSTM hidden state dimension")
     parser.add_argument('--no_class_weights', action='store_true', help="Disable class weighting in loss functions")
+    parser.add_argument('--use_smote', action='store_true',
+                        help="Locate the checkpoint trained with --use_smote (test data itself is never resampled)")
     parser.add_argument('--device', type=str, default=None, help="Device to use (cpu, mps, cuda)")
     parser.add_argument('--model', type=str, default='lstm', choices=['lstm', 'mlp'],
                         help="Model architecture to evaluate")
+    parser.add_argument('--seed', type=int, default=42,
+                        help="Seed of the checkpoint to locate (must match the training run)")
+    parser.add_argument('--restrict_to_common', action='store_true',
+                        help="Restrict to videos covered by every sampling method, so sampling "
+                             "conditions are compared on identical clips")
+    parser.add_argument('--readout', type=str, default='mean', choices=['mean', 'last', 'attention'],
+                        help="LSTM temporal readout of the checkpoint being evaluated")
+    parser.add_argument('--dump_preds', type=str, default=None,
+                        help="Optional path to write per-sample predictions as CSV, for paired "
+                             "significance testing (McNemar)")
     return parser.parse_args()
 
 def main():
@@ -52,18 +64,26 @@ def main():
     # 1. Load Test Data
     print(f"Loading test loader for {args.sampling_method}...")
     test_loader = get_dataloader(
-        args.sampling_method, 'test', 
-        batch_size=args.batch_size, 
-        shuffle=False, 
-        binarize_threshold=args.binarize_threshold
+        args.sampling_method, 'test',
+        batch_size=args.batch_size,
+        shuffle=False,
+        binarize_threshold=args.binarize_threshold,
+        restrict_to_common=args.restrict_to_common
     )
-    
+
     # 2. Load Checkpoint
+    # NOTE: this must mirror the checkpoint_name construction in train.py exactly.
     checkpoint_name = f"best_model_{args.model}_{args.sampling_method}_{args.mode}"
     if args.binarize_threshold is not None:
         checkpoint_name += f"_binary_thresh{args.binarize_threshold}"
     if args.no_class_weights:
         checkpoint_name += "_unweighted"
+    if args.use_smote and args.mode == 'classification':
+        checkpoint_name += "_smote"
+    if args.model == 'lstm' and args.readout != 'mean':
+        checkpoint_name += f"_readout-{args.readout}"
+    if args.seed != 42:
+        checkpoint_name += f"_seed{args.seed}"
     checkpoint_name += ".pt"
     checkpoint_path = str(OUTPUT_DIR / checkpoint_name)
     
@@ -82,11 +102,12 @@ def main():
         ).to(device)
     else:
         model = EngagementLSTM(
-            input_dim=1518, 
-            hidden_dim=args.hidden_dim, 
-            num_layers=1, 
-            num_classes=num_classes, 
-            mode=args.mode
+            input_dim=1518,
+            hidden_dim=args.hidden_dim,
+            num_layers=1,
+            num_classes=num_classes,
+            mode=args.mode,
+            readout=args.readout
         ).to(device)
     
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -112,7 +133,28 @@ def main():
             
     all_preds = np.array(all_preds)
     all_targets = np.array(all_targets)
-    
+
+    # Optionally persist per-sample predictions so that paired significance tests
+    # (McNemar) can align two models' predictions on identical clips. The test
+    # loader is unshuffled, so row order matches dataset.video_ids.
+    if args.dump_preds:
+        import csv
+        video_ids = test_loader.dataset.video_ids
+        if len(video_ids) != len(all_preds):
+            raise RuntimeError(
+                f"Prediction/video-id length mismatch ({len(all_preds)} vs {len(video_ids)}); "
+                "refusing to write a misaligned prediction dump."
+            )
+        dump_path = Path(args.dump_preds)
+        dump_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(dump_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['video_id', 'y_true', 'y_pred'])
+            for vid, y_true, y_pred in zip(video_ids, all_targets, all_preds):
+                writer.writerow([vid, y_true, y_pred])
+        print(f"Wrote {len(all_preds)} per-sample predictions to {dump_path}")
+
+
     # 4. Metrics Computation
     # Overall MSE
     overall_mse = np.mean((all_preds - all_targets) ** 2)
@@ -154,7 +196,10 @@ def main():
     print("="*40)
     print(f"Overall MSE: {overall_mse:.4f}")
     print(f"Pearson Correlation (PCC): {pcc:.4f} (p-value: {p_val:.4g})")
-    
+    training_time = checkpoint.get('training_time_seconds')
+    if training_time is not None:
+        print(f"Training Time: {training_time:.2f} seconds ({training_time / 60:.2f} minutes)")
+
     if args.mode == 'classification' or args.mode == 'regression':
         print(f"Accuracy: {accuracy:.4f}")
         print("\nClass-wise Metrics:")
@@ -184,10 +229,11 @@ def main():
         suffix = ""
         
     if args.no_class_weights:
-        plot_name = f"confusion_matrix_{args.model}_{args.sampling_method}_{args.mode}{suffix}_unweighted.png"
-    else:
-        plot_name = f"confusion_matrix_{args.model}_{args.sampling_method}_{args.mode}{suffix}.png"
-        
+        suffix += "_unweighted"
+    if args.use_smote and args.mode == 'classification':
+        suffix += "_smote"
+    plot_name = f"confusion_matrix_{args.model}_{args.sampling_method}_{args.mode}{suffix}.png"
+
     sns.heatmap(
         cm, 
         annot=True, 
