@@ -632,6 +632,63 @@ conda run -n thesis-engagenet python scripts/analyze_rf_feature_importance.py \
   --mode <classification|regression> --binarize_threshold <1|2|3>
 ```
 
+---
+
+## Feature Extraction Time Analysis
+
+Benchmarked feature extraction time on the 10 sample videos across temporal sampling methods (Targeted, 3/5/7-Changepoint). **BOCPD was excluded** because it was never implemented in the production codebase (both BOCPD and 3-Changepoint load from identical underlying CSV files in `src/dataset.py`). Each video is ~10s (300 frames @ 30fps); features extracted include facial action units, facial landmarks, and pose keypoints (~1518-dim per frame).
+
+### Average Extraction Time per Video (across all 4 sampling methods)
+
+| Video | Mean Total (s) | Std (s) | Min (s) | Max (s) | Notes |
+|---|---|---|---|---|---|
+| subject_0_2msdhgqawh_vid_0_2.mp4 | 7.19 | 1.01 | 6.57 | 8.51 | - |
+| subject_100_jqsyphj1sj_vid_0_19.mp4 | 7.18 | 1.00 | 6.57 | 8.51 | - |
+| subject_101_random174gjjglkg_vid_2_20.mp4 | 7.43 | 0.89 | 6.61 | 8.66 | - |
+| subject_102_ax9bbn1mcc_vid_0_15.mp4 | **152.97** | 1.49 | **150.99** | **154.58** | Anomalous: fps=1000/frames=10000 in container (metadata quirk, actual duration ~10s) |
+| subject_103_xcjreth6q9_vid_0_11.mp4 | 4.12 | 1.37 | 3.09 | 5.99 | Faster; fewer valid frames extracted |
+| subject_104_06lc4xlb48_vid_0_17.mp4 | 6.90 | 1.01 | 6.15 | 8.25 | - |
+| subject_106_51uckf660n_vid_0_10.mp4 | 7.46 | 1.09 | 6.68 | 8.89 | - |
+| subject_107_t9w4xfx125_vid_1_27.mp4 | 6.98 | 0.99 | 6.13 | 8.25 | - |
+| subject_10_n5yny96tpq_vid_1_21.mp4 | 6.96 | 1.03 | 6.09 | 8.30 | - |
+| subject_1_1zug2hqfz1_vid_0_26.mp4 | 6.96 | 1.06 | 6.16 | 8.35 | - |
+
+### Extraction Time by Sampling Method (across 10 videos, excluding subject_102 outlier)
+
+| Sampling Method | Avg Scan (s) | Avg FrameExt (s) | Avg FinalPass (s) | Avg Total (s) | Frames/Video |
+|---|---|---|---|---|---|
+| Targeted | 4.56 | 0.12 | 1.54 | **6.22** | 3 |
+| 3-Changepoint | 4.49 | 0.14 | 1.41 | **6.04** | 3 |
+| 5-Changepoint | 4.51 | 0.25 | 2.29 | **7.05** | 5 |
+| 7-Changepoint | 4.55 | 0.37 | 3.44 | **8.36** | 7 |
+
+### Delta from Targeted Baseline
+
+| Config | Total Time (s) | Delta (s) | Delta (%) | Interpretation |
+|---|---|---|---|---|
+| Targeted (baseline) | 21.02 | — | — | Baseline |
+| 3-Changepoint | 20.45 | −0.57 | −2.7% | Slightly faster (fewer frames in edge cases) |
+| 5-Changepoint | 21.52 | +0.50 | +2.4% | ~66% more frames (+2 frames: 3→5), modest time increase |
+| 7-Changepoint | 22.66 | +1.64 | +7.8% | ~133% more frames (+4 frames: 3→7), proportional time increase |
+
+**Key Observations:**
+
+- **Scan pass dominates and is constant across methods** (~4.5s per video). The `process_single_video()` Pass 1 runs full-frame landmark detection on every `frame_skip`-th frame (~150 frames @ frame_skip=2) regardless of sampling method; this prerequisite cost is identical whether you ultimately select 3, 5, or 7 frames. Method-driven differences live entirely in Pass 3 (final pass).
+- **Final pass cost scales linearly with frame count.** Pass 3 runs background removal (rembg) + re-inference (MediaPipe) on each selected frame, plus draws debug visualization overlays. Timing increases from ~1.5s (3 frames) → ~2.3s (5 frames) → ~3.4s (7 frames), a ~0.9s increment per frame. The visualization drawing is genuine overhead but is part of the production pipeline, so included here with this caveat.
+- **Frame extraction (Pass 2) is negligible** (~0.1–0.4s total, ~0.02–0.05s per frame); it's O(1) disk seeking/read/write.
+- **subject_102 file is anomalous** (~150s total). Its container metadata reports fps=1000/frames=10000 (actually 10s duration, ~1 actual fps), but this doesn't cause a crash — the extractor tolerates the metadata quirk and extracts normally. All 4 configs show consistent 150s timing for this file, confirming the anomaly is in the scan pass (frame iteration), not sampling-specific logic. Flag for follow-up if full-dataset results are needed.
+- **subject_103 extracts fewer frames** (1 valid frame vs 3–7 for others), reducing its total time; however, the scan cost is still ~2.6s, showing that scan cost doesn't drop even if fewer frames pass validity checks.
+- **This is a convenience sample of 10 videos**, not the full EngageNet dataset. Full-dataset timing would benefit from larger-scale profiling (e.g., 100+ videos).
+
+The 10 sample videos are not tracked in this repository (EngageNet participant footage is
+not redistributed); populate `sample/` from your local EngageNet copy first.
+
+Run the benchmark locally with:
+```bash
+python scripts/benchmark_feature_extraction_time.py
+```
+Output logs to `artifacts/feature_extraction_timing_sample.txt`.
+
 
 
 

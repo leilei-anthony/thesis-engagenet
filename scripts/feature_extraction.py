@@ -7,6 +7,7 @@ import subprocess
 import shutil
 import multiprocessing
 import gc
+import time
 from pathlib import Path
 from scipy.signal import find_peaks
 from rembg import remove, new_session
@@ -150,7 +151,7 @@ class VideoFeatureExtractor:
         velocity = np.convolve(velocity, np.ones(5)/5, mode='same')
         return np.pad(velocity, (0, 1), mode='edge')
 
-    def process_single_video(self, video_path, relative_dir=""):
+    def process_single_video(self, video_path, relative_dir="", timing=None):
         # Load AI models if this process hasn't loaded them yet
         if not hasattr(self, 'face_landmarker'):
             self.init_models()
@@ -169,11 +170,12 @@ class VideoFeatureExtractor:
         vis_dir.mkdir(parents=True, exist_ok=True)
 
         # 1. Pass 1: Scan video
+        scan_start = time.perf_counter() if timing is not None else None
         cap = cv2.VideoCapture(video_path)
         valid_indices = []
         valid_landmarks =[]
-        mediapipe_features_all = {} 
-        
+        mediapipe_features_all = {}
+
         frame_idx = 0
         while cap.isOpened():
             # Zero-cost frame skipping
@@ -182,10 +184,10 @@ class VideoFeatureExtractor:
                 frame = None
             else:
                 has_frame, frame = cap.read()
-                
-            if not has_frame: 
+
+            if not has_frame:
                 break
-                
+
             if frame is not None:
                 # Downscale for faster MediaPipe processing
                 h, w = frame.shape[:2]
@@ -195,17 +197,17 @@ class VideoFeatureExtractor:
                     process_frame = cv2.resize(frame, (int(w * scale), int(h * scale)))
                 else:
                     process_frame = frame
-                    
+
                 image_rgb = cv2.cvtColor(process_frame, cv2.COLOR_BGR2RGB)
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
-                
+
                 pose_result = self.pose_landmarker.detect(mp_image)
                 face_result = self.face_landmarker.detect(mp_image)
-                
+
                 feat = {'frame': frame_idx + 1}
                 # Pose landmarks names map (rough mapping for original features)
                 pose_names = {11:'LEFT_SHOULDER', 12:'RIGHT_SHOULDER', 13:'LEFT_ELBOW', 14:'RIGHT_ELBOW', 15:'LEFT_WRIST', 16:'RIGHT_WRIST', 23:'LEFT_HIP', 24:'RIGHT_HIP'}
-                
+
                 if pose_result.pose_landmarks:
                     for idx in self.upper_body_indices:
                         lm = pose_result.pose_landmarks[0][idx]
@@ -219,7 +221,7 @@ class VideoFeatureExtractor:
                         name = pose_names.get(idx, str(idx))
                         feat[f"MP_{name}_x"], feat[f"MP_{name}_y"], feat[f"MP_{name}_z"] = np.nan, np.nan, np.nan
                         feat[f"MP_{name}_v"] = 0
-                        
+
                 mediapipe_features_all[frame_idx] = feat
 
                 if self.is_frame_valid(face_result, pose_result):
@@ -227,9 +229,10 @@ class VideoFeatureExtractor:
                     if face_result.face_landmarks:
                         lms = [[lm.x, lm.y] for lm in face_result.face_landmarks[0]]
                         valid_landmarks.append(lms)
-            
+
             frame_idx += 1
         cap.release()
+        scan_seconds = time.perf_counter() - scan_start if timing is not None else None
 
         # Selection logic
         selected_indices =[]
@@ -253,9 +256,15 @@ class VideoFeatureExtractor:
             # Clean up empty directories if skipped
             shutil.rmtree(raw_dir, ignore_errors=True)
             shutil.rmtree(vis_dir, ignore_errors=True)
+            if timing is not None:
+                timing['scan_seconds'] = scan_seconds
+                timing['frame_extract_seconds'] = 0
+                timing['final_pass_seconds'] = 0
+                timing['total_seconds'] = scan_seconds
             return None 
 
         # 2. Pass 2: Extract selected frames in O(1) time
+        frame_extract_start = time.perf_counter() if timing is not None else None
         cap = cv2.VideoCapture(video_path)
         for idx in selected_indices:
             cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
@@ -263,8 +272,10 @@ class VideoFeatureExtractor:
             if success:
                 cv2.imwrite(str(raw_dir / f"frame_{idx:06d}.jpg"), frame)
         cap.release()
+        frame_extract_seconds = time.perf_counter() - frame_extract_start if timing is not None else None
 
         # 3. Final Visualizations & Data Extraction
+        final_pass_start = time.perf_counter() if timing is not None else None
         final_features = []
         for i, idx in enumerate(selected_indices):
             frame_num = idx
@@ -349,11 +360,25 @@ class VideoFeatureExtractor:
 
             cv2.imwrite(str(vis_dir / f"frame_{frame_num:06d}_vis.jpg"), vis_frame)
 
+        final_pass_seconds = time.perf_counter() - final_pass_start if timing is not None else None
+
         if not final_features:
+            if timing is not None:
+                timing['scan_seconds'] = scan_seconds
+                timing['frame_extract_seconds'] = frame_extract_seconds
+                timing['final_pass_seconds'] = final_pass_seconds
+                timing['total_seconds'] = scan_seconds + frame_extract_seconds + final_pass_seconds
             return None
 
         df_final = pd.DataFrame(final_features)
         df_final.to_csv(video_output_dir / f"{video_name}_selected_features.csv", index=False)
+
+        if timing is not None:
+            timing['scan_seconds'] = scan_seconds
+            timing['frame_extract_seconds'] = frame_extract_seconds
+            timing['final_pass_seconds'] = final_pass_seconds
+            timing['total_seconds'] = scan_seconds + frame_extract_seconds + final_pass_seconds
+
         return df_final
 
 

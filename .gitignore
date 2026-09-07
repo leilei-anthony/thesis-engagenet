@@ -4,3 +4,17 @@ artifacts
 __pycache__/
 *.pyc
 .DS_Store
+
+# Sample videos (EngageNet participant footage - not redistributed)
+sample/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.synctex.gz
+paper/compile.log
+paper/missfont.log
