@@ -277,11 +277,11 @@ The prior revision reported AU features dominating 10-of-15. On the restricted s
 
 ## 7. Reproducibility
 
-- **Sweep driver:** `scripts/run_ablation_threshold3.py` (parameterised; replaces the duplicated baseline/SMOTE script pair).
-- **Analysis:** `scripts/summarize_threshold3.py`, `scripts/significance_tests.py`, `scripts/smote_delta.py`, `scripts/analyze_rf_feature_importance.py`.
+- **Sweep driver:** `scripts/experiments/run_ablation_threshold3.py` (parameterised; replaces the duplicated baseline/SMOTE script pair).
+- **Analysis:** `scripts/analysis/summarize_threshold3.py`, `scripts/analysis/significance_tests.py`, `scripts/analysis/smote_delta.py`, `scripts/analysis/analyze_rf_feature_importance.py`.
 - **Results:** `artifacts/ablation_threshold3_{common,seeds,readout}.txt`, with `*_manifest.jsonl` and `predictions_threshold3_*/` dumps.
 - **Tests:** `tests/test_dataset_integrity.py` — 14 regression tests, one per defect found. `conda run -n thesis-engagenet python -m pytest tests/ -v`
 - **Implementation:** `src/dataset.py` (restriction, ordering, padding), `src/model.py` (readouts), `src/train.py` (seeding, SMOTE), `src/train_traditional.py`, `src/evaluate.py`.
 - **Environment:** Apple M1 (8 cores, 8 GB), macOS 26.5.2, PyTorch 2.5.1, Python 3.10.20, scikit-learn 1.7.2.
 - **Prior revision:** preserved at commit `f0d514a`.
-- **Not re-run under the corrected protocol:** `EXPERIMENTS.md` — do not cite alongside this document.
+- **Not re-run under the corrected protocol:** [`archive/docs/EXPERIMENTS.md`](../archive/docs/EXPERIMENTS.md) — do not cite alongside this document.

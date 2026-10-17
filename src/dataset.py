@@ -21,7 +21,7 @@ SNP_LABEL = 'SNP(Subject Not Present)'
 
 # The sampling methods that actually have extracted datasets on disk.
 # NOTE: 'bocpd' is deliberately absent. BOCPD was never implemented -- the
-# extraction pipeline (scripts/feature_extraction.py) only provides 'targeted'
+# extraction pipeline (src/feature_extraction.py) only provides 'targeted'
 # (first/middle/last valid frame) and 'changepoint' (top-k velocity peaks).
 # The previous 'bocpd' option silently loaded the 3-changepoint files, which
 # made BOCPD results duplicates of 3-changepoint rather than an independent
@@ -109,7 +109,7 @@ class EngagementDataset(Dataset):
         if self.sampling_method == 'bocpd':
             raise ValueError(
                 "sampling_method='bocpd' is not supported. BOCPD was never implemented in this "
-                "project: scripts/feature_extraction.py only provides 'targeted' (first/middle/last "
+                "project: src/feature_extraction.py only provides 'targeted' (first/middle/last "
                 "valid frame) and 'changepoint' (top-k velocity peaks) extraction modes. The former "
                 "'bocpd' option silently loaded 3-changepoint data, making its results duplicates "
                 "rather than an independent condition. "

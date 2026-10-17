@@ -17,7 +17,7 @@ p-value, the accuracy difference, and a bootstrap confidence interval on that
 difference. Holm-Bonferroni correction is applied within each comparison family.
 
 Usage:
-    python scripts/significance_tests.py \
+    python scripts/analysis/significance_tests.py \
         --preds_dir artifacts/predictions_threshold3_common
 """
 import argparse
@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 SAMPLING_ORDER = ["targeted", "3-changepoint", "5-changepoint", "7-changepoint"]
 MODEL_ORDER = ["lstm", "mlp", "svm", "rf"]
@@ -174,7 +174,7 @@ def main():
     if not rows:
         raise SystemExit(
             f"No prediction files matched in {preds_dir}. "
-            "Run scripts/run_ablation_threshold3.py first."
+            "Run scripts/experiments/run_ablation_threshold3.py first."
         )
 
     results = pd.DataFrame(rows)

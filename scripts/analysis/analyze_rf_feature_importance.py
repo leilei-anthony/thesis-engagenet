@@ -18,10 +18,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import plot_tree
 
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from dataset import EngagementDataset  # noqa: E402
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 FIGURES_DIR = REPO_ROOT / "artifacts" / "figures"
 FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 

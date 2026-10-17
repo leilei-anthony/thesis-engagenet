@@ -8,8 +8,8 @@ position -- unlike the legacy markdown tables, which had to be maintained by
 hand.
 
 Usage:
-    python scripts/summarize_threshold3.py --log artifacts/ablation_threshold3_common.txt
-    python scripts/summarize_threshold3.py --log ... --seeds   # aggregate mean+/-sd over seeds
+    python scripts/analysis/summarize_threshold3.py --log artifacts/ablation_threshold3_common.txt
+    python scripts/analysis/summarize_threshold3.py --log ... --seeds   # aggregate mean+/-sd over seeds
 """
 import argparse
 import re
@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 SAMPLING_ORDER = ["targeted", "3-changepoint", "5-changepoint", "7-changepoint"]
 MODEL_ORDER = ["lstm", "mlp", "svm", "rf"]

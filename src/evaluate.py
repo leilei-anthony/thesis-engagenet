@@ -20,7 +20,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate Engagement LSTM Model")
     parser.add_argument('--sampling_method', type=str, required=True,
-                        help="Temporal sampling method to use (e.g. targeted, bocpd, 5-changepoint)")
+                        help="Temporal sampling method to use (targeted, 3-changepoint, 5-changepoint, 7-changepoint)")
     parser.add_argument('--mode', type=str, default='classification', choices=['classification', 'regression'],
                         help="Task mode: classification (4 classes) or regression (continuous)")
     parser.add_argument('--binarize_threshold', type=int, default=None, choices=[1, 2, 3],

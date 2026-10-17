@@ -13,11 +13,11 @@ import glob
 import time
 from datetime import datetime
 
-# Add repo root to path
-REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
+# Add src/ to path
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from scripts.feature_extraction import VideoFeatureExtractor
+from feature_extraction import VideoFeatureExtractor
 
 SAMPLE_DIR = REPO_ROOT / "sample"
 OUTPUT_ROOT = REPO_ROOT / "artifacts" / "feature_extraction_timing_sample"

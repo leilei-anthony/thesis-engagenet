@@ -22,13 +22,13 @@ single parameterised driver. Differences from the legacy scripts:
 Examples
 --------
 # main re-run: baseline + SMOTE, single seed, default readout
-python scripts/run_ablation_threshold3.py --smote both
+python scripts/experiments/run_ablation_threshold3.py --smote both
 
 # multi-seed for the stochastic models
-python scripts/run_ablation_threshold3.py --seeds 42 43 44 45 46 --models lstm mlp
+python scripts/experiments/run_ablation_threshold3.py --seeds 42 43 44 45 46 --models lstm mlp
 
 # readout ablation
-python scripts/run_ablation_threshold3.py --models lstm --readouts mean last attention \
+python scripts/experiments/run_ablation_threshold3.py --models lstm --readouts mean last attention \
     --seeds 42 43 44 45 46
 """
 import argparse
@@ -38,7 +38,7 @@ import sys
 import time
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 PROCESSED_DIR = REPO_ROOT / "data" / "processed"
 ARTIFACT_DIR = REPO_ROOT / "artifacts"
 
