@@ -1,8 +1,14 @@
-dataset
-data
-artifacts
+# Local data and generated outputs (not redistributed)
+data/
+artifacts/
+# Legacy raw-video location (now data/raw_videos/); kept so older clones stay clean
+dataset/
+
+# Python
 __pycache__/
 *.pyc
+.pytest_cache/
+
 .DS_Store
 
 # Sample videos (EngageNet participant footage - not redistributed)
