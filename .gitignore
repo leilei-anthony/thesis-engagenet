@@ -24,3 +24,7 @@ sample/
 *.synctex.gz
 paper/compile.log
 paper/missfont.log
+
+# Paper build outputs and private submission forms
+paper/*.pdf
+paper/submission/
