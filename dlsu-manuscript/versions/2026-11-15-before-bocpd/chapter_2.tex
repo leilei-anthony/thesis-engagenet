@@ -1,0 +1,232 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%   Filename    : chapter_2.tex
+%
+%   Description : Related Works. Answers OCE required revisions R2 (MLLM/VLM references, Section 2.4)
+%                 and R3 (literature that positions the study, Section 2.7). Sources and what was
+%                 checked for each are in dlsu-manuscript/notes/literature-matrix.md.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Related Works}
+\label{sec:relatedworks}
+
+This chapter reviews the work that leads to the question of this study, moving from the general problem to the specific gap. Section~\ref{sec:rw-detection} describes automated engagement detection in learning, and Section~\ref{sec:rw-datasets} compares the datasets available for video-based engagement detection. Section~\ref{sec:rw-models} reviews classification approaches, and Section~\ref{sec:rw-vlm} reviews the recent use of vision-language models. Sections~\ref{sec:rw-sampling} and \ref{sec:rw-frameuse} examine how frames are selected, first in video understanding in general and then in engagement and affect recognition, and Section~\ref{sec:rw-temporal} reviews how the selected frames are combined and whether their temporal order is used. Section~\ref{sec:rw-synthesis} positions the study against the closest prior work. Throughout, works are compared on the data used, the signal extracted, how the frames of a clip reach the model, the model, and the reported result.
+
+
+%%
+%% --- 2.1 Automated Engagement Detection --- %%
+%%
+
+\section{Automated Engagement Detection}
+\label{sec:rw-detection}
+
+Many systems that detect affect combine several sensors. \citeA{dmello2015} reviewed 90 multimodal affect detection systems and found that combining modalities gave higher accuracy than the best single modality in 85\% of them, with a mean improvement of 9.83\%. The improvement was smaller for systems trained on natural rather than acted data. Additional sensors therefore help, but each requires extra equipment, and the benefit shrinks in natural settings.
+
+Video of the face carries much of the information that human observers use. \citeA{whitehill2014} found that the engagement labels of ten-second clips could be predicted from the average of the labels given to their individual frames (Pearson $r = 0.85$), which suggests that static expressions contain most of the information observers rely on. Detection from video has also been shown outside the laboratory. \citeA{bosch2016} detected several affective states above chance from video of students' faces and bodies in a school computer lab, and their detectors generalized across times of day and days of the week. \citeA{monkaresi2017} combined facial features estimated from video with heart rate to detect students' self-reported engagement.
+
+In video-based learning, a webcam is a cheaper, more widely available, and less intrusive sensor than physiological devices \cite{abedi2021}. Detection from webcam video alone is therefore the practical case for online learning, and it is the case this study addresses. The remaining sections concern video-only detection.
+
+
+%%
+%% --- 2.2 Datasets --- %%
+%%
+
+\section{Datasets for Video-Based Engagement Detection}
+\label{sec:rw-datasets}
+
+Table~\ref{tab:rw-datasets} compares five datasets of learners' video. They differ in three respects that matter for this study: how many participants they include, how their labels were produced, and how the labels are distributed across levels.
+
+\begin{table}[t]
+   \centering
+   \caption[Datasets of learners' video]{Datasets of learners' video. Counts are as reported by the dataset authors. Clips are 10 seconds long except in CMOSE (13.7 seconds on average) and RAER (5 to 15 seconds).}
+   \label{tab:rw-datasets}
+   \small
+   \begin{tabular}{L{2.1cm}rrL{2.5cm}L{4.2cm}}
+      \toprule
+      Dataset & Clips & Participants & Setting & Labels and annotation \\
+      \midrule
+      DAiSEE \cite{gupta2016} & 9,068 & 112 & Webcam, e-learning & Four states (boredom, confusion, engagement, frustration) at four levels; crowd annotation checked against a gold standard set by psychologists \\
+      EngageWild \cite{kaur2018} & 195$^{a}$ & 78 & Unconstrained & Four engagement levels; several annotators \\
+      EngageNet \cite{singh2023} & $\approx$11,300 & 127 & Labs, dormitories, open spaces & Four engagement levels; three annotators, weighted $\kappa$ from 0.73 to 0.79 \\
+      CMOSE \cite{wu2024cmose} & 12,193 & 102 & Online training classes & Four engagement levels; seven annotators trained by psychologists, ICC = 0.84; video, audio, and speech \\
+      RAER \cite{zhao2025} & $\approx$2,700 & $\approx$140 & Classrooms, libraries, laboratories, dormitories & Five academic emotions, grouped as engaged or distracted; about ten annotators per clip \\
+      \bottomrule
+   \end{tabular}
+
+   \vspace{0.5ex}
+   {\footnotesize $^{a}$Videos, not ten-second clips, about 16.5 hours in total.\par}
+\end{table}
+
+DAiSEE \cite{gupta2016} is the most widely used benchmark among the works reviewed in Section~\ref{sec:rw-models}, but its engagement labels are highly imbalanced. Of its 9,068 clips, 61 are labeled very low and 459 low in engagement, so only 5.7\% fall in the two lowest levels. Its labels came from crowd annotators, and the authors of CMOSE note that later studies have questioned their quality \cite{wu2024cmose}. EngageWild \cite{kaur2018} was annotated by several labelers but contains only 195 videos. CMOSE \cite{wu2024cmose} addresses label quality directly, with annotators trained by psychologists and high reported agreement, but it was recorded in group online classes and includes audio and speech, which this study does not use.
+
+RAER \cite{zhao2025} differs from the others in its labels. Each clip is labeled with one of five academic emotions: enjoyment, neutrality, confusion, fatigue, or distraction. For a coarser task, distraction counts as \emph{distracted} and the other four as \emph{engaged}, so its engagement label is binary and means only that the student is not distracted. Neutrality alone accounts for about 65\% of the clips. The accompanying method combines the face with context, such as whether a student is looking at a phone or reading a book. RAER is relevant to recognizing students' states in natural settings, but it does not provide engagement levels rated from visible behavior, which this study predicts (Section~\ref{sec:definitions}).
+
+EngageNet \cite{singh2023} is used in this study for four reasons. It has the most participants among the datasets in Table~\ref{tab:rw-datasets} that are labeled with engagement levels. Each clip was rated by three annotators whose agreement is reported. Its official split is subject-independent, so results are measured on people the classifier has not seen. Its labels are less skewed than those of DAiSEE: 48.57\% of clips are Highly-Engaged, 20.97\% Engaged, 12.3\% Barely-engaged, and 18.16\% Not-Engaged \cite{singh2023}. Using a single dataset is a limitation. The datasets in Table~\ref{tab:rw-datasets} were recorded in different settings, with different people and labels, so a result found on EngageNet may not hold on the others (Section~\ref{sec:scopelimitations}).
+
+
+%%
+%% --- 2.3 Classification Approaches --- %%
+%%
+
+\section{Engagement Classification Approaches}
+\label{sec:rw-models}
+
+Approaches to video-based engagement classification fall into two groups. End-to-end approaches learn features directly from the frames, usually with a convolutional network followed by a temporal model. Feature-based approaches first extract facial behavior with a toolkit, such as OpenFace 2.0 \cite{baltrusaitis2018}, and then classify the resulting signals. Table~\ref{tab:rw-models} summarizes representative works of both kinds.
+
+\begin{table}[t]
+   \centering
+   \caption[Representative engagement classifiers]{Representative engagement classifiers. Accuracy is for the four-level task, as reported by each paper. The papers differ in features, preprocessing, and training, so the values are not a controlled comparison.}
+   \label{tab:rw-models}
+   \small
+   \begin{tabular}{L{3.0cm}L{1.9cm}L{4.5cm}r}
+      \toprule
+      Work & Dataset & Input and model & Accuracy (\%) \\
+      \midrule
+      \citeA{gupta2016} & DAiSEE & Raw frames; long-term recurrent convolutional network & 57.9 \\
+      \citeA{liao2021} & DAiSEE & Face images; SE-ResNet-50 with an attention-based LSTM & 58.8 \\
+      \citeA{abedi2021} & DAiSEE & 50 frames per clip; ResNet with a temporal convolutional network & 63.9 \\
+      \citeA{mehta2022} & DAiSEE & Frame volumes; 3D DenseNet with self-attention & 63.6 \\
+      \citeA{selim2022} & DAiSEE & Frames; EfficientNet-B7 with an LSTM & 67.5 \\
+      \citeA{singh2023} & EngageNet & Gaze, head pose, and action units (OpenFace); Transformer & 67.6 \\
+      \citeA{vedernikov2024} & EngageNet & Two head-pose signals; convolutional and Transformer streams & 68.9$^{a}$ \\
+      \citeA{abedi2024stgcn} & EngageNet & 78 MediaPipe facial landmarks over every frame; spatial-temporal graph convolutional network & 71.2$^{a}$ \\
+      \bottomrule
+   \end{tabular}
+
+   \vspace{0.5ex}
+   {\footnotesize $^{a}$On the EngageNet validation split. The figure for \citeA{singh2023} is on the test split, so these are not directly comparable with it.\par}
+\end{table}
+
+On DAiSEE, reported four-level accuracy rose from 57.9\% for the original benchmark \cite{gupta2016} to 67.5\% \cite{selim2022}. On EngageNet, the best baseline reached 67.6\% on the test split with a Transformer on OpenFace gaze, head-pose, and action-unit features \cite{singh2023}. Adding features from MARLIN \cite{cai2023marlin}, a model pretrained on unlabeled face videos to produce general-purpose facial representations, lowered accuracy slightly, to 66.5\%. TCCT-Net \cite{vedernikov2024} used only two head-pose signals instead of 98 features and reached 68.9\% on the validation split, above the baselines it was compared with. Because it works on these signals rather than on images, its inference was also an order of magnitude faster than that of image-based recurrent networks, not counting the time needed to extract the signals. \citeA{abedi2024stgcn} used only facial landmarks, extracted with MediaPipe as in this study, and modeled their movement over every frame with a spatial-temporal graph convolutional network. With an ordinal training scheme, it reached 71.2\% on the validation split, against 69.1\% for the Transformer baseline of \citeA{singh2023} on the same split. These results suggest that a small set of well-chosen signals can match a much larger one.
+
+Each of these papers changes several design choices at once, including the features, the network, and the preprocessing, so an improvement cannot be traced to any single choice. The way frames reach the model is also fixed within each paper. \citeA{abedi2021} reduced each clip to 50 frames, and \citeA{singh2023} pooled every frame into 20 segments of equal length, describing each segment by the mean and standard deviation of its features. Neither varied this choice. In other words, each paper picks one way of handling frames and keeps it, and none measures how much that choice affects accuracy.
+
+
+%%
+%% --- 2.4 Vision-Language Models --- %%
+%%
+
+\section{Vision-Language Models for Engagement}
+\label{sec:rw-vlm}
+
+Vision-language models (VLMs) are trained on images and text together. Some, such as CLIP, score how well an image matches a text description. Others, often called multimodal large language models (MLLMs), pair a visual encoder with a language model: given an image or a set of video frames and a text prompt, they produce a text answer. Both kinds can be applied to a classification task through prompting alone (zero-shot) or after further training. Their use for students' states is recent. Table~\ref{tab:rw-vlm} summarizes the works reviewed in this section.
+
+\begin{table}[t]
+   \centering
+   \caption[Vision-language models applied to students' states]{Vision-language models applied to emotion, academic emotion, and engagement. ``Preprint'' marks work not yet peer reviewed.}
+   \label{tab:rw-vlm}
+   \small
+   \begin{tabular}{L{3.0cm}L{3.2cm}L{2.6cm}L{3.8cm}}
+      \toprule
+      Work & Models & Task and data & Main finding \\
+      \midrule
+      \citeA{cheng2024} & Emotion-LLaMA (audio, video, text) & Emotion recognition benchmarks & Instruction tuning gave strong emotion recognition results \\
+      \citeA{zhao2025} & CLIP with learnable prompts & Academic emotion, RAER clips & Face plus context outperformed video expression methods \\
+      \citeA{teotia2024} & GPT-4o mini, LLaVA-1.5 & Classroom behavior images & Engaged and distracted behavior confused \\
+      \citeA{wang2025vlm} (preprint) & Llama-3.2-Vision, Qwen2.5-VL & Academic expressions, 5,000 face images & Distracted expressions largely missed \\
+      \citeA{goyal2026} (preprint) & CLIP, BLIP, GPT-4o, LLaVA, Qwen2.5-VL & Engagement, DAiSEE clips & Near-chance agreement for individual students \\
+      \citeA{vedernikov2025} (preprint) & VLM as a label checker & Engagement, EngageNet and others & Refined labels gave small gains to conventional models \\
+      \bottomrule
+   \end{tabular}
+\end{table}
+
+For emotion recognition in general, results are strong. The Emotion-LLaMA model \cite{cheng2024} combines audio, visual, and text encoders with a language model, and after instruction tuning, it achieved an F1 score of 0.9036 on a multimodal emotion recognition benchmark, MER2023-SEMI. For academic emotions, CLIP-CAER \cite{zhao2025} classifies a clip by comparing it with a text description of each emotion, using the vision-language model CLIP with text prompts that are partly learned during training. It looks at both the student's face and the surrounding scene. On RAER, it outperformed methods for recognizing facial expressions in video that were designed for basic emotions, such as happiness or anger, with an unweighted average recall of 68.0\% against 61.2\% for the next best.
+
+For engagement, results are weaker. \citeA{teotia2024} evaluated GPT-4o mini and LLaVA-1.5 on classroom images and found that models that performed well on basic emotion recognition struggled with engagement. In particular, they confused engaged and distracted behavior, such as reading and bowing the head. In a preprint, \citeA{wang2025vlm} applied two open models zero-shot to 5,000 images of students' faces in online learning. Both recognized happy expressions well but largely failed to detect distraction. Another preprint \cite{goyal2026} tested five models zero-shot on DAiSEE clips. Agreement with the labels never exceeded a Cohen's $\kappa$ of 0.10 for individual students, the models assigned 85 to 100\% of clips to a single level, and rewording the prompt changed accuracy by up to 32 points. GPT-4o also declined 98\% of the step-by-step reasoning requests that involved students' faces. \citeA{vedernikov2025}, also in a preprint, used a VLM in a different role: rather than classifying engagement, it judged which EngageNet labels were reliable, and training conventional models on the more reliable clips first improved accuracy by up to 1.21\% in three of six feature settings.
+
+A VLM processing video receives only a limited number of frames, so which frames it receives is a design choice, and Section~\ref{sec:rw-sampling} shows that this choice affects results. At the same time, the evidence so far does not show that zero-shot VLMs classify an individual student's engagement reliably, and using a hosted model would mean sending participants' videos to an external service, which the EngageNet user agreement does not permit without the licensors' approval (Section~\ref{sec:ethics}). This study therefore does not test VLMs (Section~\ref{sec:scopelimitations}). The question it asks, whether frames chosen by content are more informative than frames chosen by position, applies to them as well.
+
+
+%%
+%% --- 2.5 Frame Selection in Video Understanding --- %%
+%%
+
+\section{Frame Selection in Video Understanding}
+\label{sec:rw-sampling}
+
+In video understanding more broadly, frame selection has been studied directly. The works reviewed here follow one of two ideas, or combine them: covering the video evenly, and selecting the parts with the most informative content. Temporal Segment Networks \cite{wang2016} take one short snippet from each of several segments of equal length, which covers the whole video at low cost. SCSampler \cite{korbar2019} instead scores candidate clips with a lightweight network and passes only the most salient ones to an expensive classifier. On the Sports1M dataset, it raised the classifier's accuracy by 7\% and cut its computational cost by more than 15 times. For video VLMs, Adaptive Keyframe Sampling \cite{tang2025aks} selects frames that balance relevance to the prompt against coverage of the video, noting that uniform sampling can miss important information, and it improved accuracy on long-video question answering. A benchmark of small VLMs found that their measured performance depended on the frame sampling strategy and that the best strategy differed between datasets and tasks \cite{brkic2025}.
+
+These works show that content-based selection can outperform even coverage, but also that no strategy is best for every task, and that the two ideas can be combined. They concern action recognition and question answering on videos of seconds to hours, in which the relevant content is an action or an event in the scene. Engagement clips are short, and the relevant content is subtle facial and postural behavior. Whether content-based selection helps in this setting cannot be inferred from these results and has to be tested directly.
+
+
+%%
+%% --- 2.6 Frame Use in Engagement and Affect Recognition --- %%
+%%
+
+\section{Frame Use in Engagement and Affect Recognition}
+\label{sec:rw-frameuse}
+
+Table~\ref{tab:rw-frameuse} groups the reviewed engagement and affect works by how the frames of a clip reach the model. Most use every frame or a fixed subsample. Some learn which frames matter, and only two select a few frames by a rule and compare rules.
+
+\begin{table}[t]
+   \centering
+   \caption[How frames reach the model]{How the frames of a clip reach the model in engagement and affect recognition.}
+   \label{tab:rw-frameuse}
+   \small
+   \begin{tabular}{L{3.2cm}L{2.1cm}L{4.9cm}>{\centering\arraybackslash}p{2.5cm}}
+      \toprule
+      Work & Data & Frames reaching the model & Rules compared \\
+      \midrule
+      \citeA{whitehill2014} & Own & Single frames; clip label from the frame average & No \\
+      \citeA{singh2023} & EngageNet & Every frame, pooled into equal segments & No \\
+      \citeA{abedi2021} & DAiSEE & Fixed subsample of 50 frames & No \\
+      \citeA{kaur2018} & EngageWild & Segments as instances; model localizes engaging parts & No \\
+      \citeA{meng2019} & Expression videos & Every frame, weighted by learned attention & No \\
+      \citeA{abedi2024bag} & DAiSEE & Per-segment states counted without order & No \\
+      \citeA{das2024} & DAiSEE & Every frame labeled through transfer learning & No \\
+      \citeA{abedi2024stgcn} & EngageNet & Every frame; sparser uniform subsampling also tested & No (rate only) \\
+      \citeA{resurreccion2024} & DAiSEE & Three frames per clip, Targeted or Changepoint & Yes \\
+      Preliminary study \cite{sityar2026icce} & EngageNet & SME (three frames) or 3-, 5-, 7-Changepoint & Yes \\
+      \bottomrule
+   \end{tabular}
+\end{table}
+
+Approaches that learn which frames matter still process every frame. Frame Attention Networks \cite{meng2019}, proposed for facial expression recognition in video, weight each frame by a learned attention score before combining them. \citeA{kaur2018} treated engagement prediction as weakly supervised multiple-instance learning, which localizes the engaging and non-engaging parts of a video. Other work questions whether the order of frames matters at all. \citeA{abedi2024bag} described each clip by how often each behavioral and affective state occurred, ignoring order, and reached accuracy up to 66.58\% on DAiSEE. Shuffling the order of states within videos left predictions largely unchanged, which suggests that which states occur may matter more than when. \citeA{das2024} moved in the opposite direction, assigning engagement labels to individual frames by transferring a model trained on labeled images. \citeA{abedi2024stgcn} varied only the sampling rate: keeping every second to every sixteenth frame instead of every frame lowered validation accuracy slightly, from 69.4\% to between 68.1\% and 69.1\%.
+
+Two works select a few frames by a rule before extracting features and compare rules. \citeA{resurreccion2024} compared two frame selection methods, Targeted and Changepoint, each keeping three frames per ten-second DAiSEE clip, for classifying four academic emotions from changes in facial landmarks. Changepoint selection had a slight advantage for the more dynamic states, engagement and frustration, whereas Targeted selection performed well for all four, especially the more static boredom and confusion. The preliminary study of this proposal \cite{sityar2026icce} compared SME sampling with $k$-Changepoint selection at three, five, and seven frames on EngageNet. All four classifiers had their highest mean macro F1 under 3-Changepoint selection, but the improvement over SME was statistically significant only for the Random Forest (Section~\ref{sec:prelim}).
+
+Both comparisons leave the same two questions open. Because the position-based rule was tested only at three frames, the rule and the number of frames are confounded. Without random selection as a control, there is also no reference point for what an arbitrary choice of frames achieves.
+
+
+%%
+%% --- 2.7 Temporal Representation of Frames --- %%
+%%
+
+\section{Temporal Representation of Frames}
+\label{sec:rw-temporal}
+
+Once frames are selected, they must be combined into an input for the classifier, and this step decides whether the order of the frames and the changes between them can be used. In video classification, \citeA{karpathy2014} compared networks that combine frames at different stages, from merging the features of separate frames late in the network to fusing neighboring frames from the first layer onward. On a dataset of one million sports videos, the best of these networks improved only modestly over a network that saw a single frame, from 59.3\% to 60.9\% accuracy. \citeA{ng2015} compared max-pooling the features of a video's frames with reading the frames in order with an LSTM. With 30 frames, the two reached nearly the same video-level accuracy on the same task, 71.7\% and 72.1\%. Temporal Segment Networks \cite{wang2016} combine the predictions of their segments by averaging, which the authors found to work better than taking the maximum or a learned weighted average. The same work added the differences between consecutive frames as a second input, because they describe changes in appearance that may reflect motion, and found that this input improved action recognition when combined with the frames themselves. A different way to describe how a sequence changes is a temporal self-similarity matrix, which records how similar every pair of frames is. \citeA{junejo2011} showed that this description of an action stays stable when the camera viewpoint changes.
+
+Engagement recognition shows the same variety. The EngageNet baselines \cite{singh2023} describe each segment of a clip by the mean and standard deviation of its features and then model the sequence of segments with a Transformer or an LSTM, so order is kept across segments but not within them. \citeA{abedi2021} modeled the sequence of frame features with a temporal convolutional network, \citeA{abedi2024stgcn} modeled the movement of landmarks over time with a graph network, and Frame Attention Networks \cite{meng2019} weight frames by learned attention before combining them. In contrast, \citeA{abedi2024bag} discarded order altogether, and shuffling the order of states within videos left their predictions largely unchanged (Section~\ref{sec:rw-frameuse}). In the preliminary study of this proposal, the LSTM, which reads frames in order, did not differ significantly from the MLP, which receives their average. Letting the LSTM weight its outputs by attention raised its mean accuracy by 2.04 points over averaging, a difference that was not tested for significance (Section~\ref{sec:training}).
+
+Whether order and change add information beyond the average of the frames is therefore unsettled. Most of this evidence also comes from dense sequences of frames. With three to seven selected frames, a classifier has little sequence to model, and no work reviewed here has examined, together with frame selection, whether a fixed temporal representation, such as the changes between consecutive frames or their similarity to one another, helps more than averaging or a learned sequence model. The changes between consecutive frames and the similarity of every pair of frames are adapted here from the video analysis work above to a few selected frames. Neither was found in the engagement recognition work reviewed here.
+
+
+%%
+%% --- 2.8 Synthesis --- %%
+%%
+
+\section{Synthesis}
+\label{sec:rw-synthesis}
+
+Table~\ref{tab:rw-positioning} compares the proposed study with the closest prior work. Video of the face and upper body carries much of the information observers use to judge engagement, and a few frames may contain most of it \cite{whitehill2014}. Accuracy on engagement benchmarks has improved mainly through changes to features and networks, while the selection of frames has been treated as fixed preprocessing. In video understanding more broadly, frame selection measurably affects results, including for VLMs, and the best rule depends on the task \cite{brkic2025,tang2025aks}. Whether the order of frames and the changes between them add information beyond their average is unsettled, and it has not been examined at the small frame budgets that frame selection produces. Finally, the two engagement studies that compared frame selection rules tested the position-based rule at only one frame budget and included no random control.
+
+\begin{table}[t]
+   \centering
+   \caption[Positioning of the proposed study]{Positioning of the proposed study against the closest prior work.}
+   \label{tab:rw-positioning}
+   \small
+   \begin{tabular}{L{2.4cm}L{2.0cm}L{3.2cm}L{2.3cm}L{1.8cm}}
+      \toprule
+      Work & Data & Selection rules & Frame budgets & Random control \\
+      \midrule
+      \citeA{singh2023} & EngageNet & None (every frame, equal segments) & Not applicable & No \\
+      \citeA{resurreccion2024} & DAiSEE & Targeted, Changepoint & 3 & No \\
+      Preliminary study & EngageNet (partial training split) & SME, $k$-Changepoint & SME: 3; Changepoint: 3, 5, 7 & No \\
+      \textbf{This study} & EngageNet (full) & SME, positional, random, $k$-Changepoint & SME: 3; others: 3, 5, 7 & Yes (five draws) \\
+      \bottomrule
+   \end{tabular}
+\end{table}
+
+Among the works reviewed here, none has compared frame selection by content with frame selection by position for engagement classification at matched frame budgets against a random control. This is the gap the study addresses. By crossing the selection rules with the frame budgets and including random selection, the study can separate three effects that the earlier comparisons could not: the effect of choosing frames by content rather than by position, the effect of choosing frames by any rule rather than arbitrarily, and the effect of the number of frames kept. In every selection condition, it also tests whether representing the order and change of the selected frames adds information beyond their average. Chapter~\ref{sec:theoframework} presents the concepts underlying this comparison, and Chapter~\ref{sec:methodology} describes how it will be carried out.

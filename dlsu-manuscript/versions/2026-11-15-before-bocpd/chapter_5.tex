@@ -1,0 +1,250 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%   Filename    : chapter_5.tex
+%
+%   Description : Preliminary results and future work, added at the adviser's request (14 Nov 2026).
+%                 Section 5.1 is the former Section 4.7, moved unchanged except for one cross-reference.
+%                 Its numbers come from docs/methodology-and-results.md and the accepted ICCE paper.
+%                 Table 5.3 was counted from the official label files in data/labels/ on 14 Nov 2026,
+%                 with SNP clips removed. Its totals match Table 4.2.
+%                 Algorithm 5.1 follows src/feature_extraction.py (SME and k-Changepoint) and
+%                 Section 4.4 (positional and random selection, still to be implemented).
+%                 Completed activities in the calendar table come from the proponent's answers
+%                 (MSLABS1-3), docs/meeting-notes/, and the git history; their dates are approximate.
+%                 The calendar was a Gantt chart until the adviser asked for a table (14 Nov 2026).
+%                 Section 5.1 became "Preliminary Work" at the adviser's request (15 Nov 2026), so that the
+%                 proponent's two DAiSEE papers are discussed (Section 5.1.1) and all three papers are
+%                 reproduced in the appendix. Section 5.1.1 takes its facts from the papers themselves
+%                 (past-papers/) and, by the proponent's choice, reports them narrowly: only what was
+%                 done, the results this thesis builds on, and the papers' limits. The ICCE paper is
+%                 accepted for presentation; it has not yet been presented.
+%                 Calendar, "Paper writing and submission": the MSLABS3 bullet is the PERSUASIVE paper
+%                 (PDF saved 19 Jan 2026; published online 9 Mar 2026); the Sep bullet also covers the
+%                 TENCON camera-ready (IEEE PDF eXpress, 3 Sep 2026).
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Preliminary Results and Future Work}
+\label{sec:prelimfuture}
+
+This chapter reports what has been done so far and what remains. Section~\ref{sec:prelimwork} summarizes two earlier studies on DAiSEE and gives the results of the preliminary study on EngageNet. Section~\ref{sec:future} lists the remaining steps of the thesis, gives its two main procedures as algorithms, and explains how the binary task was chosen. Section~\ref{sec:calendar} shows the schedule of the whole thesis, from the first research term to the final defense.
+
+
+%%
+%% --- 5.1 Preliminary Work --- %%
+%%
+
+\section{Preliminary Work}
+\label{sec:prelimwork}
+
+Three papers have come out of the work done so far, and Appendix~\ref{sec:publications} reproduces each in full. Two of them used the DAiSEE dataset \cite{gupta2016} and are summarized in Section~\ref{sec:daisee}. The third reports the preliminary study of this thesis on EngageNet, whose results are given in Section~\ref{sec:prelim}.
+
+\subsection{Earlier Studies on DAiSEE}
+\label{sec:daisee}
+
+\citeA{sityar2026persuasive} examined how three choices change the classification of the four academic emotions labeled in DAiSEE: boredom, engagement, confusion, and frustration. The choices were the feature set (facial action units, facial and upper-body landmarks, or both), the representation of the features (their values in each frame, or the change between frames measured by Euclidean distance or cosine similarity), and the binarization threshold. Each clip was reduced to three frames by SME sampling, and three classifiers were trained with SMOTE on an 80/20 split that kept all clips of a student on the same side. The best configuration differed between emotions. For engagement, the F1 score of the smaller class stayed between 0.03 and 0.08 at thresholds 1 and 2, where low engagement was a small minority, and reached 0.55 at threshold 3, which gave classes of similar size, using cosine change features. The paper reports one result per configuration and no significance tests, so it cannot show which of these differences are reliable. This thesis keeps two of its choices: SME sampling as the reference rule, and threshold 3, which also gives the most balanced classes on EngageNet (Section~\ref{sec:binarization}). The frame combinations of this thesis (Section~\ref{sec:training}) return to the question of whether the change between frames adds information, this time with significance tests.
+
+\citeA{carandang2026tencon} compared a four-qubit variational quantum circuit with a single-layer perceptron of comparable size on the same four emotions. Three frames per clip were selected by Bayesian online changepoint detection (BOCPD) \cite{adams2007} on OpenFace facial landmarks, the features were reduced to four principal components, one per qubit, and the labels were binarized at threshold 3 for engagement and threshold 1 for the other emotions, following \citeA{sityar2026persuasive}. The perceptron had the higher test accuracy for three of the four emotions, all but boredom. The proponent, the second of four authors, contributed the changepoint frame selection, the binarization thresholds, and the classical baselines, and took part in the analysis and writing. The study used a single selection rule, so it does not show whether selecting frames at changepoints helps. This thesis keeps content-based selection but uses velocity peaks instead of BOCPD, for the reason given in Section~\ref{sec:scopelimitations}.
+
+\subsection{Preliminary Study on EngageNet}
+\label{sec:prelim}
+
+The preliminary study was the first experiment of this thesis on EngageNet. It has been accepted for presentation at the 34th International Conference on Computers in Education (ICCE 2026) \cite{sityar2026icce}. The results below are those of the accepted paper, and Tables~\ref{tab:prelim-f1} and \ref{tab:prelim-mcnemar} are adapted from it. In places, the interpretation given here is narrower than the paper's, following a review of its claims against the data.
+
+The study compared SME sampling with $k$-Changepoint selection at $k = 3$, 5, and 7 across the four classifiers. It used the same features, task, and classifier settings described in Chapter~\ref{sec:methodology}, but only part of the training split (Section~\ref{sec:data}), no SMOTE, and only the mean of the frames for the MLP, SVM, and Random Forest. Its common clip set contained 2,719 training, 867 validation, and 2,005 test clips. The neural networks were trained with five seeds, and their results are reported as means.
+
+Table~\ref{tab:prelim-f1} reports macro F1 for all sixteen configurations. All four classifiers had their highest mean macro F1 under 3-Changepoint sampling. The best configuration was 3-Changepoint sampling with the SVM, at 0.7010 macro F1 and 0.7017 accuracy.
+
+\begin{table}[t]
+   \centering
+   \caption[Macro F1 in the preliminary study]{Macro F1 in the preliminary study (threshold 3, $n = 2{,}005$ test clips). LSTM and MLP values are means over five seeds. The highest value for each classifier is in bold. Adapted from \citeA{sityar2026icce}.}
+   \label{tab:prelim-f1}
+   \begin{tabular}{lcccc}
+      \toprule
+      Classifier & SME & 3-Changepoint & 5-Changepoint & 7-Changepoint \\
+      \midrule
+      LSTM & 0.6475 & \textbf{0.6548} & 0.6413 & 0.6494 \\
+      MLP & 0.6497 & \textbf{0.6617} & 0.6471 & 0.6445 \\
+      SVM & 0.6838 & \textbf{0.7010} & 0.6966 & 0.6884 \\
+      Random Forest & 0.5307 & \textbf{0.5904} & 0.5612 & 0.5610 \\
+      \bottomrule
+   \end{tabular}
+\end{table}
+
+A consistent direction across classifiers does not show that the differences are reliable, so Table~\ref{tab:prelim-mcnemar} tests each changepoint condition against SME clip by clip. Only the Random Forest improved significantly over SME, and it did so at all three frame budgets. Under 3-Changepoint sampling, it gained 4.79 accuracy points, against 1.70 for the SVM, 1.05 for the MLP, and $-0.15$ for the LSTM. The size of the gain did not follow the accuracy of the classifiers. The Random Forest, the least accurate classifier, gained the most, but the SVM, the most accurate, did not gain the least. With only four classifiers, the study could not tell whether the larger gain of the Random Forest comes from its lower accuracy or from some other difference between the classifiers. Finally, the one significant LSTM result, which favored SME over 5-Changepoint sampling, is not reliable. The test used the predictions of a single seed, and across the five seeds the difference reversed direction in three.
+
+\begin{table}[t]
+   \centering
+   \caption[Accuracy difference from SME in the preliminary study]{Accuracy difference from SME in the preliminary study, in percentage points, with Holm--Bonferroni-corrected McNemar $p$-values. Positive values favor changepoint sampling. Tests for the LSTM and MLP used the predictions of seed 42. $^{*}$Significant after correction. $^{\dagger}$Reverses direction in three of five seeds. Adapted from \citeA{sityar2026icce}.}
+   \label{tab:prelim-mcnemar}
+   \small
+   \begin{tabular}{lccc}
+      \toprule
+      Classifier & 3-Changepoint & 5-Changepoint & 7-Changepoint \\
+      \midrule
+      Random Forest & $+4.79$ ($p < 0.001$)$^{*}$ & $+2.59$ ($p = 0.004$)$^{*}$ & $+2.39$ ($p = 0.004$)$^{*}$ \\
+      SVM & $+1.70$ ($p = 0.082$) & $+1.25$ ($p = 0.209$) & $+0.50$ ($p = 0.558$) \\
+      MLP & $+1.05$ ($p = 0.413$) & $-0.45$ ($p = 0.611$) & $-1.65$ ($p = 0.233$) \\
+      LSTM & $-0.15$ ($p = 0.890$) & $-2.49$ ($p = 0.011$)$^{*\dagger}$ & $-0.60$ ($p = 0.751$) \\
+      \bottomrule
+   \end{tabular}
+\end{table}
+
+Among the changepoint conditions, no classifier improved beyond $k = 3$. Macro F1 fell at each step from $k = 3$ to $k = 7$ for the SVM, the MLP, and the Random Forest, but from $k = 5$ to $k = 7$ the MLP and the Random Forest changed by less than 0.003, so only the SVM declined clearly at both steps. Differences between frame budgets were not tested for significance.
+
+Differences between classifiers were larger than differences between sampling conditions. The SVM exceeded the Random Forest by 8.9 to 12.0 accuracy points across conditions, whereas no sampling condition changed a classifier's accuracy by more than 4.8 points. With an averaging readout and default settings, the LSTM, which reads the frames in order, and the MLP, which receives their mean, did not differ significantly in any condition (Section~\ref{sec:rw-temporal}). Across five seeds, LSTM accuracy varied less under 3-Changepoint sampling (standard deviation 0.0022) than under SME (0.0129). This pattern was weaker at $k = 5$ and $k = 7$ and did not hold for the MLP at $k = 7$, and five seeds give only a rough estimate of spread.
+
+The proposed design addresses the questions the preliminary study left open. Position-based selection was tested only at three frames (Section~\ref{sec:design}). No random baseline showed what an arbitrary choice of frames achieves (Section~\ref{sec:selection}). Differences between frame budgets were not tested (Section~\ref{sec:evaluation}). Significance tests for the neural networks relied on a single seed (Section~\ref{sec:seeds}). The MLP, SVM, and Random Forest received only the mean of the frames, so whether the order and change of the frames add information was not tested (Section~\ref{sec:training}).
+
+
+%%
+%% --- 5.2 Future Work --- %%
+%%
+
+\section{Future Work}
+\label{sec:future}
+
+The future work described in this section is the remaining work of this thesis, not research beyond it. It carries out the design of Chapter~\ref{sec:methodology}.
+
+\subsection{Remaining Steps}
+\label{sec:steps}
+
+The remaining work consists of the following steps, in order. Table~\ref{tab:timetableactivities} places them in the schedule.
+
+\begin{enumerate}
+   \item \textbf{New selection rules.} Implement positional selection and random selection, the latter with five draws at seeds 42 to 46 (Section~\ref{sec:selection}).
+   \item \textbf{Feature extraction.} Run the second pass for all ten selection conditions, with one feature set per draw under random selection. SME and $k$-Changepoint selection are extracted again on the full training split.
+   \item \textbf{Common clip set.} Keep the clips that have features under every condition, and report every clip excluded and the reason (Section~\ref{sec:commonset}).
+   \item \textbf{Frame combinations.} Implement the four ways of combining the selected frames for the MLP, SVM, and Random Forest, and the attention readout for the LSTM (Section~\ref{sec:training}).
+   \item \textbf{Training.} Train every configuration on the training split balanced with SMOTE, with five seeds for the neural networks (Section~\ref{sec:training}).
+   \item \textbf{Evaluation.} Compute the metrics, run the 176 planned comparisons in six families with the Holm--Bonferroni correction, run the equivalence tests, and choose the best configuration on the validation split (Section~\ref{sec:evaluation}).
+   \item \textbf{Final manuscript and defense.} Interpret the results by the rules fixed in advance (Table~\ref{tab:interpretation}), complete the manuscript, and defend the thesis.
+\end{enumerate}
+
+\subsection{Algorithms}
+\label{sec:algorithms}
+
+Algorithms~\ref{alg:selection} and \ref{alg:evaluation} summarize the two procedures at the center of the remaining work. Algorithm~\ref{alg:selection} gives the four frame selection rules of Section~\ref{sec:selection}. Its SME and $k$-Changepoint branches follow the extraction code of the preliminary study, and its positional and random branches are still to be implemented. Algorithm~\ref{alg:evaluation} gives the training and evaluation of every configuration described in Sections~\ref{sec:training} and \ref{sec:evaluation}.
+
+\begin{algorithm}[t]
+   \caption{Frame selection}
+   \label{alg:selection}
+   \begin{algorithmic}[1]
+      \Require valid frames $V = (f_1, \dots, f_n)$ of a clip, in temporal order; a selection rule; a frame budget $k$; a random seed $s$ (random selection only)
+      \Ensure at most $k$ selected frames, in temporal order
+      \If{$n \le k$}
+         \State \Return $V$
+      \EndIf
+      \If{the rule is SME} \Comment{used only with $k = 3$}
+         \State \Return $(f_1, f_{\lfloor n/2 \rfloor + 1}, f_n)$
+      \ElsIf{the rule is positional} \Comment{center of each of $k$ equal segments}
+         \State \Return $(f_{\lfloor (j - 1/2)\,n/k \rfloor + 1})$ for $j = 1, \dots, k$
+      \ElsIf{the rule is random}
+         \State draw $k$ distinct positions uniformly from $1, \dots, n$, using seed $s$
+         \State \Return the frames at these positions, in temporal order
+      \Else \Comment{$k$-Changepoint}
+         \For{$t = 1$ to $n - 1$}
+            \State $v_t \gets$ velocity between $f_t$ and $f_{t+1}$ (Equation~\ref{eq:velocity})
+         \EndFor
+         \State $\bar{v} \gets$ five-point moving average of $v$
+         \State $P \gets$ positions of the local maxima of $\bar{v}$, at least 7 positions apart
+         \State $P_k \gets$ the $k$ positions in $P$ with the highest $\bar{v}$ (all of $P$ if fewer)
+         \State \Return $(f_t)$ for $t \in P_k$, in temporal order
+      \EndIf
+   \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[t]
+   \caption{Training and evaluation of all configurations}
+   \label{alg:evaluation}
+   \begin{algorithmic}[1]
+      \Require features of the selected frames for each selection condition, with one feature set per draw under random selection, restricted to the common clip set
+      \Ensure predictions and metrics of every configuration; the best configuration
+      \ForAll{conditions $c$, classifiers $m$, and frame combinations $g$ of $m$}
+         \State $r \gets 5$ if $m$ is a neural network or $c$ is random, else $r \gets 1$
+         \For{$i = 1$ to $r$} \Comment{one version per seed or draw}
+            \State use draw $i$ if $c$ is random, and seed $41 + i$ if $m$ is neural
+            \State form the inputs under $g$, with standardization and SMOTE
+            \State train $m$, then predict the validation and test clips
+         \EndFor
+      \EndFor
+      \State compute macro F1, accuracy, and MCC for every configuration and version
+      \State run each family's McNemar tests on paired versions, with Holm correction
+      \State run the equivalence tests with a margin of $\pm 2$ accuracy points
+      \State report the best configuration (mean validation macro F1) on the test split
+   \end{algorithmic}
+\end{algorithm}
+
+\subsection{Binarization Approach}
+\label{sec:binarization}
+
+EngageNet labels each clip at one of four levels, from 0 (Not-Engaged) to 3 (Highly-Engaged). A binary task can be formed with a threshold $t$: clips at level $t$ or above form the positive class, and clips below it form the negative class. Threshold 1 separates Not-Engaged clips from all others, threshold 2 separates the two lower levels from the two higher ones, and threshold 3 separates Highly-Engaged clips from all others. The preliminary study considered these thresholds and kept threshold 3, which gave the most balanced classes \cite{sityar2026icce}. Its early runs at thresholds 1 and 2 were exploratory, were made before the common clip set (Section~\ref{sec:commonset}) was introduced, and are not reported. The remaining work keeps threshold 3.
+
+Table~\ref{tab:thresholds} shows the class sizes that each threshold gives in the official partition. Only threshold 3 gives two classes of nearly equal size, and it does so in every split. When one class is much larger, accuracy rewards predicting it. At threshold 1, a classifier that labeled every test clip as engaged would be correct on 79.7\% of them without using the video at all, whereas at threshold 3 the same strategy would be correct on 50.3\%. Macro F1 counts the two classes equally and so corrects for this in part. Under threshold 3, accuracy, on which the equivalence margin is set (Section~\ref{sec:evaluation}), is also not inflated by the class sizes.
+
+\begin{table}[t]
+   \centering
+   \caption[Class sizes under each binarization threshold]{Class sizes under each binarization threshold in the official EngageNet partition, after SNP clips are removed. Each cell gives the number of negative clips, those below the threshold, and their share of the split. The remaining clips are positive. Counted from the official label files.}
+   \label{tab:thresholds}
+   \begin{tabular}{lrrrr}
+      \toprule
+      & & \multicolumn{3}{c}{Negative clips} \\
+      \cmidrule(lr){3-5}
+      & & $t = 1$ & $t = 2$ & $t = 3$ \\
+      Split & Clips & (level 0) & (levels 0--1) & (levels 0--2) \\
+      \midrule
+      Training & 7,879 & 1,446 (18.4\%) & 2,481 (31.5\%) & 4,139 (52.5\%) \\
+      Validation & 1,071 & 132 (12.3\%) & 229 (21.4\%) & 502 (46.9\%) \\
+      Test & 2,256 & 457 (20.3\%) & 703 (31.2\%) & 1,122 (49.7\%) \\
+      \bottomrule
+   \end{tabular}
+\end{table}
+
+Threshold 1 would isolate Not-Engaged clips, the level that matters most in practice. It is not used, for the three reasons given in Section~\ref{sec:scopelimitations}, and detecting Not-Engaged clips on their own is left for work beyond this thesis. How often Not-Engaged clips are predicted as Highly-Engaged is still reported for every condition (Section~\ref{sec:metrics}).
+
+
+%%
+%% --- 5.3 Calendar of Activities (moved from 4.9) --- %%
+%%
+
+\section{Calendar of Activities}
+\label{sec:calendar}
+
+Table~\ref{tab:timetableactivities} shows the calendar of activities, from MSLABS1 to the final defense in March 2027.
+
+\begin{table}[t]
+   \centering
+   \caption[Calendar of activities]{Calendar of activities. MSLABS1 to MSLABS3 are the three research terms, from May 2025 to April 2026. A bullet marks each term or month in which an activity takes place.}
+   \label{tab:timetableactivities}
+   \footnotesize
+   \setlength{\tabcolsep}{2pt}
+   \begin{tabular}{L{4.85cm}*{3}{>{\centering\arraybackslash}p{0.38cm}}*{11}{c}}
+      \toprule
+      & \multicolumn{3}{c}{MSLABS} & \multicolumn{8}{c}{2026} & \multicolumn{3}{c}{2027} \\
+      \cmidrule(lr){2-4} \cmidrule(lr){5-12} \cmidrule(lr){13-15}
+      Activity & 1 & 2 & 3 & May & Jun & Jul & Aug & Sep & Oct & Nov & Dec & Jan & Feb & Mar \\
+      \midrule
+      \multicolumn{15}{l}{\textit{Completed}} \\
+      Topic exploration & $\bullet$ & $\bullet$ & $\bullet$ & & & & & & & & & & & \\
+      Review of related literature & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & $\bullet$ & & & & & \\
+      Dataset search & $\bullet$ & $\bullet$ & $\bullet$ & & & & & & & & & & & \\
+      Experiments on DAiSEE & $\bullet$ & $\bullet$ & $\bullet$ & & & & & & & & & & & \\
+      EngageNet access & & & $\bullet$ & $\bullet$ & $\bullet$ & & & & & & & & & \\
+      Preliminary feature extraction & & & & & $\bullet$ & $\bullet$ & & & & & & & & \\
+      Preliminary experiments & & & & & & $\bullet$ & $\bullet$ & $\bullet$ & & & & & & \\
+      Paper writing and submission & & & $\bullet$ & & & & $\bullet$ & $\bullet$ & & & & & & \\
+      Oral comprehensive exam & & & & & & & & & $\bullet$ & & & & & \\
+      \midrule
+      \multicolumn{15}{l}{\textit{Planned}} \\
+      Proposal writing and defense & & & & & & & & & & $\bullet$ & & & & \\
+      Revisions and ethics review & & & & & & & & & & $\bullet$ & $\bullet$ & & & \\
+      New selection rules & & & & & & & & & & & $\bullet$ & & & \\
+      Frame combinations & & & & & & & & & & & $\bullet$ & & & \\
+      Full feature extraction & & & & & & & & & & & $\bullet$ & $\bullet$ & & \\
+      Training and evaluation & & & & & & & & & & & & & $\bullet$ & \\
+      Statistical analysis & & & & & & & & & & & & & $\bullet$ & $\bullet$ \\
+      Writing the final manuscript & & & & & & & & & & & & & $\bullet$ & $\bullet$ \\
+      Final defense & & & & & & & & & & & & & & $\bullet$ \\
+      \bottomrule
+   \end{tabular}
+\end{table}

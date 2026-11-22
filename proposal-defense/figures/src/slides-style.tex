@@ -1,0 +1,29 @@
+% Shared style for the slide figures: sans-serif text (Helvetica, close to the Arial of the charts),
+% the same colors as charts.py, and the manuscript's table tools.
+\usepackage[T1]{fontenc}
+\usepackage[scaled]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{amsmath,amssymb}
+\usepackage{sansmath}
+\usepackage{xcolor}
+\usepackage{booktabs,array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+
+\definecolor{ink}{HTML}{0B0B0B}
+\definecolor{inktwo}{HTML}{52514E}
+\definecolor{muted}{HTML}{898781}
+\definecolor{gridc}{HTML}{E1E0D9}
+\definecolor{basec}{HTML}{C3C2B7}
+% one color per selection rule, in the fixed categorical order of the charts
+\definecolor{cp}{HTML}{2A78D6}     % k-Changepoint (content)
+\definecolor{sme}{HTML}{EB6834}    % SME (position)
+\definecolor{posc}{HTML}{1BAF7A}    % positional (position)
+\definecolor{rnd}{HTML}{EDA100}    % random (chance)
+\definecolor{bocpd}{HTML}{E87BA4}  % k-BOCPD (content), categorical slot 5
+\definecolor{temporal}{HTML}{6250D6}  % temporal information added to the mean (frame combinations figure)
+
+\newcommand{\chip}[1]{\tikz[baseline=0.1ex]\fill[#1, rounded corners=1pt] (0,0) rectangle (0.32cm,0.32cm);}
+\AtBeginDocument{\sansmath\color{ink}}
+\hyphenpenalty=10000 \exhyphenpenalty=10000   % no hyphenated words on slides

@@ -1,0 +1,16 @@
+\begin{comment}
+This file will contain your abstract in English.
+Template rules: 150 to 250 words, one paragraph, no citations or quotes. Moves: motivation,
+problem, contribution, methodology. The template skips results at the proposal stage, but the
+adviser asked (11 Nov 2026) for the preliminary study's results to be included.
+\end{comment}
+
+\begin{abstract}
+Detecting student engagement automatically from webcam video could help instructors in online learning notice when students disengage. Video-based engagement classifiers often process only a few frames of each clip, yet the rule that chooses these frames has rarely been studied on its own. A preliminary study on the EngageNet dataset compared a fixed Start-Middle-End rule with selecting three, five, or seven frames at peaks of facial-landmark velocity. All four classifiers had their highest mean macro F1 with three velocity-peak frames, the best being a Support Vector Machine at 0.70. The gain over Start-Middle-End, however, was statistically significant only for a Random Forest, by up to 4.79 accuracy points, and the design could not separate how frames are chosen from how many are kept or from chance. This study will determine whether content-based frame selection improves the classification of observer-rated engagement over position-based and random selection with the same number of frames. Positional, random, and velocity-peak selection will each keep three, five, or seven frames of every EngageNet clip, and four classifiers will separate Highly-Engaged clips from all others using MediaPipe facial and upper-body pose features. The study will also test whether representing the order and change of the selected frames improves on averaging them. Conditions will be compared clip by clip with McNemar tests, corrected for multiple comparisons and repeated over five seeds or random draws, and with equivalence tests, which check whether two configurations differ by less than two accuracy points, a margin set before any results are seen.
+
+\begin{flushleft}
+\begin{tabular}{lp{4.25in}}
+\hspace{-0.5em}\textbf{Keywords:}\hspace{0.25em} & Student engagement detection, frame selection, temporal sampling, affective computing, video classification, E-learning \\
+\end{tabular}
+\end{flushleft}
+\end{abstract}

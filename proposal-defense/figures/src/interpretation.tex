@@ -1,0 +1,27 @@
+% Table 4.3 (dlsu-manuscript/chapter_4.tex, tab:interpretation), wording unchanged.
+\documentclass[12pt,border=10pt]{standalone}
+\input{slides-style}
+\begin{document}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}l@{}}
+   \begin{tabular}{@{}L{5.6cm}L{10.4cm}@{}}
+      \toprule
+      Outcome at a frame budget $k$ & Interpretation \\
+      \midrule
+      \multicolumn{2}{@{}l}{\textit{Each content-based rule against positional and random selection}} \\
+      Content $>$ random and content $>$ positional & The frames this rule selects carry information beyond both an arbitrary and an evenly spaced choice of frames. \\
+      Content $\approx$ random, both $>$ positional & Evenly spaced frames are a poor choice, but this rule is not shown to add information beyond an arbitrary choice. \\
+      Positional $>$ content & Covering the whole clip evenly is more useful than the frames this rule selects. \\
+      Content $\approx$ random $\approx$ positional & No evidence that the selection rule matters at this frame budget. \\
+      \midrule
+      \multicolumn{2}{@{}l}{\textit{The two content-based rules against each other}} \\
+      \chip{bocpd}\ $k$-BOCPD $>$ \chip{cp}\ $k$-Changepoint & The beginnings of lasting changes are more informative frames than the moments of fastest movement. \\
+      \chip{cp}\ $k$-Changepoint $>$ \chip{bocpd}\ $k$-BOCPD & The moments of fastest movement are more informative frames than the beginnings of lasting changes. \\
+      \chip{cp}\ $k$-Changepoint $\approx$ \chip{bocpd}\ $k$-BOCPD & The two definitions of content select equally useful frames at this frame budget. \\
+      \midrule
+      Any other pattern & Reported as observed, without a general conclusion about the selection rules. \\
+      \bottomrule
+   \end{tabular}\\[4pt]
+   \parbox{16cm}{\small\raggedright\textcolor{inktwo}{Frames combined by their mean. ``Content'': either content-based rule, each read separately. ``$>$'': a reliable difference (significant after correction; in all five seeds or draws where these apply). ``$\approx$'': equivalent within $\pm 2$ accuracy points.}}
+\end{tabular}
+\end{document}

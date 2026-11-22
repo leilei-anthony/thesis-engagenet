@@ -1,0 +1,33 @@
+% The proposed design: Table 4.1 (selection conditions) and the classifiers with their frame combinations
+% (Sections 4.1 and 4.5 of dlsu-manuscript/chapter_4.tex).
+\documentclass[12pt,border=10pt]{standalone}
+\input{slides-style}
+\begin{document}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}l@{}}
+   \textbf{Thirteen selection conditions}\\[2pt]
+   \begin{tabular}{@{}l L{6.4cm} c L{6.0cm}@{}}
+      \toprule
+      Rule & Selects frames by & $k$ & Status \\
+      \midrule
+      \chip{sme}\ SME & first, middle, and last valid frame & 3 & completed; to be re-extracted \\
+      \chip{posc}\ Positional & center of each of $k$ equal segments & 3, 5, 7 & proposed \\
+      \chip{rnd}\ Random & uniform random draw, five draws & 3, 5, 7 & proposed \\
+      \chip{cp}\ $k$-Changepoint & top-$k$ facial-landmark velocity peaks & 3, 5, 7 & completed; to be re-extracted \\
+      \chip{bocpd}\ $k$-BOCPD & top-$k$ beginnings of lasting changes in landmark position & 3, 5, 7 & proposed \\
+      \bottomrule
+   \end{tabular}\\[18pt]
+   \textbf{\ldots\ each run with all four classifiers}\\[2pt]
+   \begin{tabular}{@{}l L{9.6cm} l@{}}
+      \toprule
+      Classifier & Ways of combining the selected frames & Repeats \\
+      \midrule
+      LSTM & 2 readouts: averaging, attention & 5 seeds \\
+      MLP & 4: mean, concatenation, mean + change, mean + self-similarity & 5 seeds \\
+      SVM & the same 4 & once \\
+      Random Forest & the same 4 & once \\
+      \bottomrule
+   \end{tabular}\\[6pt]
+   {\small\textcolor{inktwo}{Random selection has five draws. With a neural network, seed $i$ is paired with draw $i$.}}
+\end{tabular}
+\end{document}

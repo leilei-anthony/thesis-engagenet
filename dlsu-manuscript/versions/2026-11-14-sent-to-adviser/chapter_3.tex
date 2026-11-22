@@ -1,0 +1,225 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%   Filename    : chapter_3.tex
+%
+%   Description : Theoretical Framework. Section 3.1 answers OCE required revision R1
+%                 (working definitions).
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Theoretical Framework}
+\label{sec:theoframework}
+
+This chapter presents the concepts on which the study rests. Section~\ref{sec:definitions} defines the key terms used throughout the manuscript. Section~\ref{sec:engagement} describes student engagement and which of its dimensions a video can capture, and Section~\ref{sec:indicators} describes the observable signals used as features. Sections~\ref{sec:sampling} and \ref{sec:changepoint} cover temporal sampling and changepoint detection, which underlie the frame selection rules, and Section~\ref{sec:temporal} describes how the selected frames can be combined while keeping their temporal aspect. Section~\ref{sec:classifiers} describes the classifiers, Section~\ref{sec:measures} the evaluation measures, and Section~\ref{sec:conceptual} brings these together in the conceptual framework of the study.
+
+
+%%
+%% --- 3.1 Working Definitions --- %%
+%%
+
+\section{Working Definitions}
+\label{sec:definitions}
+
+Terms such as \emph{affect}, \emph{emotion}, and \emph{engagement} are used in different ways across psychology, education, and computing. This section states how each term is used in this study. For concepts the study measures, it gives an operational definition, which states how the concept is observed in the data, in addition to a conceptual definition from the literature.
+
+\begin{description}
+
+   \item[Affect.] The literature uses this term in two ways. In a broad sense, it covers all feeling-related states, and emotions are one kind of affective phenomenon alongside moods, attitudes, and preferences \cite{scherer2005}. In a narrower sense, \emph{core affect} is the basic feeling of pleasure or displeasure, and of activation or deactivation, that is present at every moment. In this sense, core affect is one component of an emotional episode rather than the whole episode \cite{russell2003}. This study uses the narrower sense: \emph{affect} refers to core affect, a building block of emotion. The study uses no label, self-report, or physiological signal of affect. The term is defined to separate it from engagement, which is what the dataset's labels describe.
+
+   \item[Emotion.] A relatively brief episode directed at an object or event, in which a change in core affect occurs together with other processes, such as the appraisal of the event, bodily changes, facial and vocal expression, and a tendency to act \cite{russell2003,scherer2005}. The dataset used in this study has no emotion labels, so the study makes no claim about the emotions participants experienced.
+
+   \item[Academic emotion.] An emotion that arises in learning activities, instruction, or achievement situations, such as enjoyment, boredom, anxiety, or frustration while studying \cite{pekrun2002}.
+
+   \item[Student engagement.] A student's involvement in a learning activity. \citeA{fredricks2004} describe it as having three related dimensions: \emph{behavioral} engagement (participation, attention, and effort), \emph{emotional} engagement (affective reactions to the activity, such as interest or boredom), and \emph{cognitive} engagement (investment in understanding the material and the regulation of one's own learning). In this framework, engagement is not itself an emotion. Emotional reactions form one of its dimensions. Affective computing often uses the term differently. DAiSEE labels engagement, together with boredom, confusion, and frustration, as one of four \emph{affective states} \cite{gupta2016}, and a meta-analysis of studies of learning with technology counted engagement, combined with flow, among the affective states that students experience \cite{dmello2013}. This study follows \citeA{fredricks2004} because EngageNet describes its levels mainly through attention and visible behavior, which belong to the behavioral dimension, with visible interest as a sign of the emotional dimension (Section~\ref{sec:engagement}).
+
+   \item[Observer-rated engagement.] The operational definition of engagement in this study: the engagement level that EngageNet's annotators assigned to a ten-second clip \cite{singh2023}. Three annotators rated each clip on four levels from visible behavior, taking gaze, head pose, and facial expression into account. The final label is their majority vote, and an academic expert decided when all three disagreed. The lowest level describes a participant who frequently glances away from the screen and appears disinterested, and the highest describes one who appears entirely attentive and ``glued to the screen'' \cite{singh2023}. In this study, a clip shows \emph{high engagement} when it was rated Highly-Engaged, and the classification task is to separate these clips from all others. Because the ratings describe what observers could see, a classifier trained on them learns to reproduce observers' judgments of visible behavior. It does not measure what a student felt or thought \cite{barrett2019}.
+
+   \item[Facial behavior.] The movement and configuration of the face in a frame, described in this study by facial landmark positions and blendshape scores (Section~\ref{sec:features}). Facial behavior is an observable signal. It is not treated as equivalent to an emotion, because the same facial movement can accompany different internal states \cite{barrett2019}.
+
+   \item[Frame and valid frame.] A frame is a single image in a video. A valid frame is a frame in which a face is detected and which passes the consistency checks described in Section~\ref{sec:features}.
+
+   \item[Frame selection.] The rule that chooses which frames of a clip are passed to feature extraction and classification. It is also called temporal sampling.
+
+   \item[Position-based selection.] Frame selection that chooses frames by their place in the clip, without examining what the frames show. SME and positional selection are position-based (Section~\ref{sec:selection}).
+
+   \item[Content-based selection.] Frame selection that chooses frames according to what happens in them. In this study, $k$-Changepoint selection is content-based: it keeps the frames at which facial landmarks move fastest.
+
+   \item[Frame budget.] The number of frames $k$ kept from each clip. This study uses $k = 3$, 5, and 7.
+
+   \item[Frame combination.] The way a clip's selected frames are combined into a single input for a classifier, for example by taking their mean.
+
+   \item[Temporal representation.] A frame combination that keeps information about the order of the selected frames or the changes between them (Section~\ref{sec:temporal}). The mean is not a temporal representation, because shuffling the frames does not change it.
+
+   \item[Subject-independent evaluation.] Evaluation in which each participant's clips appear in only one of the training, validation, and test splits, so a classifier is always tested on people it has not seen.
+
+\end{description}
+
+
+%%
+%% --- 3.2 Student Engagement --- %%
+%%
+
+\section{Student Engagement}
+\label{sec:engagement}
+
+\citeA{fredricks2004} reviewed research on school engagement and recommended studying its behavioral, emotional, and cognitive dimensions (Section~\ref{sec:definitions}) together, as parts of one construct, rather than one at a time. Their review also covers how each dimension has been measured, mainly through self-reports, teacher ratings, and classroom observation.
+
+Automated measurement adds a further option. \citeA{dmello2017} describe approaches in which machine-learned models infer states related to engagement from behavioral and physiological signals, such as facial expressions, eye movements, and interaction logs, at a finer time scale than questionnaires allow. A video-based classifier belongs to this group: it never observes engagement directly, only signals from which engagement is inferred.
+
+The three dimensions are not equally visible in video. In EngageNet, observers rated each clip from gaze, head pose, and facial expression, and the four levels are described through behavior such as glancing away from the screen, fidgeting, or appearing ``glued to the screen'' \cite{singh2023}. These cues belong mainly to behavioral engagement. Observers' judgments of interest or disinterest also draw on visible expressions, which are signs of emotional engagement but not direct measurements of it \cite{barrett2019}. Cognitive engagement is not directly visible in the video. EngageNet gauged it separately, through a brief questionnaire on the content of each lecture video that participants answered afterward \cite{singh2023}. The classifiers in this study therefore predict observer-rated engagement, which reflects mainly the behavioral dimension together with visible signs of emotional reactions.
+
+
+%%
+%% --- 3.3 Observable Indicators --- %%
+%%
+
+\section{Observable Indicators of Engagement}
+\label{sec:indicators}
+
+The features used in this study describe three kinds of visible behavior: facial movement, gaze, and upper-body posture.
+
+\textbf{Facial movement.} The Facial Action Coding System \cite{ekman1978} describes facial movement as combinations of action units, each tied to the action of particular facial muscles and scored by trained human coders. Automated tools instead estimate facial movement from images. This study uses the blendshape scores of MediaPipe's Face Landmarker \cite{lugaresi2019}: 52 values between 0 and 1. Fifty-one of them each estimate how strongly one movement, such as raising the inner brows, closing an eye, or opening the jaw, is present in a frame, and the remaining one, labeled \emph{neutral}, does not describe a movement. Some blendshapes correspond loosely to action units. The inner-brow raise, for example, resembles action unit 1. They are not, however, action unit intensities coded according to the Facial Action Coding System. OpenFace 2.0 \cite{baltrusaitis2018}, which the EngageNet baselines used \cite{singh2023}, instead estimates action unit intensities directly, with models trained on data coded by FACS experts. This study uses blendshapes for continuity with the preliminary study and because MediaPipe also provides the landmarks that frame selection needs. Blendshapes have not been shown to describe engagement-related facial movement better than action units, and the study does not test whether its findings hold with action units. The positions of the 478 facial landmarks add the geometry of the face, which also reflects the position and orientation of the head.
+
+\textbf{Gaze.} Eight of the blendshapes describe where each eye is looking (up, down, inward, or outward). These relate directly to one of the cues that EngageNet observers used: glancing away from the screen, which describes the lowest engagement level \cite{singh2023}.
+
+\textbf{Posture and hand movement.} Eight upper-body keypoints (both shoulders, elbows, wrists, and hips) describe how a participant sits and moves the arms and hands. They relate to cues such as fidgeting, that is, small restless movements such as shifting in the chair, which EngageNet uses to describe the second-lowest level \cite{singh2023}.
+
+These signals are treated as behavior that observers could see, not as readouts of internal states. \citeA{barrett2019} reviewed the evidence on facial movements and emotion and concluded that how people express emotions varies substantially across people, situations, and cultures, so a facial configuration cannot be read as a reliable sign of a specific emotion. This is why the study's claims concern observer-rated engagement only (Section~\ref{sec:definitions}).
+
+
+%%
+%% --- 3.4 Temporal Sampling of Video --- %%
+%%
+
+\section{Temporal Sampling of Video}
+\label{sec:sampling}
+
+A video clip is a sequence of frames, and neighboring frames are often nearly identical. Processing every frame is costly and largely redundant, so video classifiers usually process a subset of frames or short clips. The rule that chooses this subset determines what information reaches the classifier.
+
+Position-based sampling chooses frames by where they occur. Temporal Segment Networks \cite{wang2016}, proposed for action recognition, divide a video into segments of equal length and take a short snippet from each. This covers the whole video sparsely and at low cost, without examining what any frame contains. The positional rule in this study follows the same idea (Section~\ref{sec:selection}).
+
+Content-based sampling chooses frames or clips by what they contain. SCSampler \cite{korbar2019} trains a lightweight network to score how informative each candidate clip of a long video is, and passes only the highest-scoring clips to an expensive action classifier, which made the classifier both more accurate and much cheaper to run (Section~\ref{sec:rw-sampling}). The choice of sampling strategy also affects how models compare with one another. In a benchmark of small vision-language models answering questions about videos, measured performance depended on the frame sampling strategy, and the best strategy differed between datasets and tasks \cite{brkic2025}.
+
+For engagement, the argument for content-based selection is as follows. Many of the cues that observers used are brief events, such as a glance away from the screen or a moment of fidgeting. A ten-second clip contains well over a hundred frames, and the selection rules in this study keep only three to seven of them, so a position-based rule may miss such events. A rule that targets moments of facial movement is more likely to include them. It is also likely to include movements unrelated to engagement, such as speaking or adjusting one's position. Whether content-based selection helps is therefore an empirical question, and the random selection rule (Section~\ref{sec:selection}) tests whether any benefit exceeds that of an arbitrary choice of frames.
+
+
+%%
+%% --- 3.5 Changepoint Detection --- %%
+%%
+
+\section{Changepoint Detection}
+\label{sec:changepoint}
+
+A changepoint is a moment at which a signal stops behaving one way and starts behaving another, for example when a face that was still begins to move. Changepoint detection is the task of finding these moments in a recorded signal \cite{truong2020}. Some methods must also decide how many changes there are, and others are told the number in advance. Exact methods, such as PELT \cite{killick2012}, find the division of the whole signal into segments that fits it best. Bayesian online changepoint detection (BOCPD) \cite{adams2007} instead updates, as each new sample arrives, the probability that a change has just occurred. Neither method is used in this study.
+
+A simpler method is \emph{window sliding} \cite[Section~5.2.1]{truong2020}. At each time step, it compares a short window of the signal just before the step with a short window just after it. The more the two windows differ, the more likely it is that a change occurred at that step, and the steps where this difference peaks are taken as changepoints. \citeA{truong2020} call this difference the \emph{discrepancy}. It is computed from the \emph{cost} of a segment, the sum of squared distances between the segment's samples and their mean: the discrepancy is the cost of the two windows treated as one segment, minus their costs treated separately.
+
+The $k$-Changepoint rule (Section~\ref{sec:selection}) is the simplest version of this method, in which each window holds a single frame of landmark positions. A single frame is its own mean, so each window on its own has zero cost, and the discrepancy between two neighboring frames is the cost of the pair. The mean of the pair lies halfway between the two frames, so this cost works out to half the square of the distance the landmarks move from one frame to the next. That distance is the landmark velocity defined in Section~\ref{sec:selection} (Equation~\ref{eq:velocity}). The discrepancy and the velocity therefore peak at the same frames, and keeping the $k$ highest velocity peaks is the same as asking window sliding for $k$ changes. The rule differs from the method in that it smooths the velocity before searching for peaks and requires peaks to be at least seven scanned frames apart.
+
+With windows this narrow, however, a peak marks a moment of fast movement, not a lasting change. A quick head turn followed by a return to the original position produces a peak even though the signal afterward is the same as before. The $k$-Changepoint rule is therefore best understood as velocity-peak selection: a well-defined but minimal case of changepoint detection.
+
+
+%%
+%% --- 3.6 Temporal Representation of Frames --- %%
+%%
+
+\section{Temporal Representation of Frames}
+\label{sec:temporal}
+
+A classifier that takes a single vector as input needs the selected frames of a clip combined into one. The simplest combination is the mean of the frames, which the preliminary study used. The mean describes what the face and body looked like on average across the selected frames, but it carries no temporal information, because shuffling the frames leaves it unchanged. A temporal representation keeps some information about the order of the frames or the changes between them. This study compares three temporal representations with the mean, each capturing a different temporal aspect (Section~\ref{sec:rw-temporal}).
+
+\emph{Concatenation} places the frame vectors one after another in temporal order. It keeps everything about every frame, including their order, but the classifier must learn what the order means, and the vector grows with the number of frames. \emph{Change} describes how much each feature differs between neighboring selected frames, averaged over the pairs of neighbors. It follows the frame differences used to describe motion in action recognition \cite{wang2016} and is added to the mean, so the vector describes both what the frames look like and how much they change. \emph{Self-similarity} records how similar every pair of selected frames is, taken in temporal order, as in the temporal self-similarity matrices used in action recognition \cite{junejo2011}. Similarity is measured by the cosine of the angle between two frame vectors, which is 1 when the vectors point in the same direction and 0 when they are unrelated. These values are also added to the mean.
+
+Self-similarity can capture a pattern that velocity peaks cannot (Section~\ref{sec:changepoint}). If a student turns their head and then returns to the original position, the first and last selected frames are very similar even though the frames between them differ. A lasting change instead makes the frames after it dissimilar to those before it. For example, consider three selected frames described by two features: $(1, 0)$, $(0, 1)$, and $(1, 0)$. Their mean is $(0.67, 0.33)$, and their concatenation is $(1, 0, 0, 1, 1, 0)$. Each feature changes by 1 between each pair of neighbors, so the change is $(1, 1)$. The cosine similarities of the first and second, first and third, and second and third frames are 0, 1, and 0, which shows that the face returned to its first state. If the frames came in the order $(1, 0)$, $(1, 0)$, $(0, 1)$, the mean would be the same, but the other three representations would differ.
+
+The LSTM is a learned alternative. It reads the selected frames in order, so it can learn which aspects of order and change matter, and its outputs for the individual frames are then combined into one, either by averaging or by attention, which learns how much weight to give each frame.
+
+
+%%
+%% --- 3.7 Classifiers --- %%
+%%
+
+\section{Classifiers}
+\label{sec:classifiers}
+
+The four classifiers differ in how they treat the frames of a clip. The LSTM receives them as an ordered sequence, and the other three receive a single vector that combines them (Section~\ref{sec:temporal}).
+
+\begin{itemize}
+   \item A \textbf{Long Short-Term Memory network} (LSTM) \cite{hochreiter1997} is a recurrent neural network. It reads a sequence one step at a time and updates an internal memory through gates that control what is stored and what is forgotten, which allows it to use information from earlier steps.
+   \item A \textbf{Multi-Layer Perceptron} (MLP) passes its input through layers of weighted sums followed by nonlinear functions. Given the mean of the frames, it has no information about their order.
+   \item A \textbf{Support Vector Machine} (SVM) \cite{cortes1995} finds the boundary between the two classes that leaves the widest possible gap to the nearest training examples of each class. On its own, an SVM can only draw a straight boundary (a flat surface when there are many features). With a radial basis function kernel, which judges two clips as similar when their features are close, the boundary can bend around groups of examples.
+   \item A \textbf{Random Forest} \cite{breiman2001} trains many decision trees, each on a random sample of the training data and with a random subset of features considered at each split, and predicts by majority vote.
+\end{itemize}
+
+When the frames are combined by their mean, the MLP, SVM, and Random Forest receive no information about the order of the frames, whereas the LSTM does. Because the LSTM and the MLP have matching layer widths, comparing them gives a descriptive indication of whether order adds anything under each selection rule, although the two networks also differ in other ways. The temporal representations of Section~\ref{sec:temporal} address the same question more directly. With only three to seven frames per clip, there is limited room for order to matter.
+
+
+%%
+%% --- 3.8 Evaluation Measures --- %%
+%%
+
+\section{Evaluation Measures}
+\label{sec:measures}
+
+For a binary task, every prediction is a true positive (TP), false positive (FP), true negative (TN), or false negative (FN). Accuracy is the share of correct predictions, $(\mathrm{TP} + \mathrm{TN}) / N$. For a given class, precision is the share of predictions of that class that are correct, recall is the share of clips of that class that are predicted correctly, and the F1 score is their harmonic mean, $2PR/(P + R)$. Macro F1 averages the F1 scores of the two classes without weighting them by size. The Matthews correlation coefficient,
+\begin{equation}
+   \mathrm{MCC} = \frac{\mathrm{TP} \cdot \mathrm{TN} - \mathrm{FP} \cdot \mathrm{FN}}{\sqrt{(\mathrm{TP}+\mathrm{FP})(\mathrm{TP}+\mathrm{FN})(\mathrm{TN}+\mathrm{FP})(\mathrm{TN}+\mathrm{FN})}},
+   \label{eq:mcc}
+\end{equation}
+uses all four counts and ranges from $-1$ to $1$, where 0 corresponds to chance-level prediction \cite{chicco2020}. For binary labels, it equals the Pearson correlation between predictions and true labels.
+
+The McNemar test \cite{mcnemar1947} compares two classifiers evaluated on the same clips. Clips that both classifiers get right, or both get wrong, say nothing about which one is better, so the test looks only at the clips on which they disagree. Let $b$ be the number of clips that only the first classifier gets right, and $c$ the number that only the second gets right. If the two classifiers were equally accurate, each disagreement would be like the toss of a fair coin, equally likely to favor either one. The exact test computes how likely a split at least as uneven as $b$ against $c$ would be under such coin tosses. For example, if two classifiers disagree on 100 clips and the first is right on 60 of them, a split of 60 to 40 or more uneven has a probability of about 0.057, so the difference is not significant at the 0.05 level. \citeA{dietterich1998} recommends this test for comparing two classifiers on a single test set.
+
+When several tests are run, the chance that at least one of them gives a false positive grows with the number of tests. The Holm--Bonferroni procedure \cite{holm1979} controls this chance by giving each test a stricter pass mark. The $m$ $p$-values are sorted from smallest to largest. The smallest must fall below $\alpha / m$, the next below $\alpha / (m - 1)$, and so on, and testing stops at the first $p$-value that misses its mark. That test and all later ones are declared not significant. For example, with three tests at $\alpha = 0.05$, the pass marks are 0.0167, 0.025, and 0.05. Sorted $p$-values of 0.01, 0.03, and 0.04 then give one significant result: 0.01 passes, 0.03 misses its mark of 0.025, and testing stops.
+
+A bootstrap confidence interval \cite{efron1993} estimates the uncertainty of a quantity without assuming its distribution. The test clips are resampled with replacement many times, the quantity is recomputed on each resample, and the 2.5th and 97.5th percentiles of the results form a 95\% interval. In this study, the quantity is the difference in accuracy between two conditions, and its interval is what the equivalence test below relies on.
+
+Finally, a non-significant difference does not show that two methods perform equally. An equivalence test asks instead whether the difference is smaller than a margin chosen in advance as the smallest difference that matters, and concludes equivalence when the confidence interval of the difference lies entirely within that margin \cite{lakens2017}. The conventional procedure uses a 90\% interval for a 5\% error rate. Using the 95\% interval, as this study does, is a stricter criterion.
+
+
+%%
+%% --- 3.9 Conceptual Framework --- %%
+%%
+
+\section{Conceptual Framework}
+\label{sec:conceptual}
+
+Figure~\ref{fig:conceptual} shows how the concepts above form the study. The framework has two levels. Within every condition, a classifier maps the facial and postural features of selected frames to a prediction of observer-rated engagement. Across conditions, the study varies how frames are selected, how the selected frames are combined, and which classifier is used, and measures how well the predictions agree with the observers' ratings.
+
+\begin{figure}[t]
+   \centering
+   \begin{tikzpicture}[
+      node distance=0.4cm,
+      chainbox/.style={draw, rounded corners=2pt, align=center, text width=3.9cm, inner sep=4pt, font=\small, fill=gray!10},
+      var/.style={draw, rounded corners=2pt, align=center, text width=3.5cm, inner sep=4pt, font=\small},
+      arr/.style={-{Stealth[length=2mm]}, thick}
+   ]
+      \node[chainbox] (clip) {EngageNet clip};
+      \node[chainbox, below=of clip] (frames) {Selected frames};
+      \node[chainbox, below=of frames] (feat) {Facial behavior and posture features, combined across frames};
+      \node[chainbox, below=of feat] (clf) {Classifier};
+      \node[chainbox, below=of clf] (pred) {Prediction:\\high engagement\\or not};
+
+      \node[var, left=0.8cm of frames] (rule) {\textbf{Independent:} frame selection rule and frame budget $k$};
+      \node[var, left=0.8cm of clf] (model) {\textbf{Independent:} classifier (LSTM, MLP, SVM, Random Forest)};
+      \node[var, right=0.8cm of feat] (combo) {\textbf{Independent:} frame combination (mean or a temporal representation)};
+      \node[var, right=0.8cm of clip] (label) {Observer rating (EngageNet label)};
+      \node[var, right=0.8cm of pred, thick] (perf) {\textbf{Dependent:} classification performance (macro F1, accuracy, MCC)};
+
+      \node[draw, dashed, rounded corners=2pt, align=center, text width=12cm, inner sep=4pt, font=\small, anchor=north] (const) at ([yshift=-0.4cm]perf.south -| pred.south) {\textbf{Held constant:} dataset and partition, feature extractor, binary task (Highly-Engaged or not), classifier settings, training procedure (with SMOTE), the same five random seeds};
+
+      \draw[arr] (clip) -- (frames);
+      \draw[arr] (frames) -- (feat);
+      \draw[arr] (feat) -- (clf);
+      \draw[arr] (clf) -- (pred);
+      \draw[arr] (rule) -- (frames);
+      \draw[arr] (combo) -- (feat);
+      \draw[arr] (model) -- (clf);
+      \draw[arr] (pred) -- (perf);
+      \draw[arr] (label.east) -- ++(0.35,0) |- (perf.east);
+   \end{tikzpicture}
+   \caption[Conceptual framework of the study]{Conceptual framework of the study. The shaded boxes show the model that runs in every condition. The independent variables change how frames are selected, how they are combined, and which classifier is used, and the dependent variable compares the model's predictions with the observers' ratings.}
+   \label{fig:conceptual}
+\end{figure}
+
+The framework leads to the expectation tested by the study. If the moments of fastest facial movement coincide with the visible cues that observers used, content-based selection should give higher classification performance than both position-based and random selection at the same frame budget. If those moments instead reflect movement unrelated to engagement, content-based selection should perform no better than random selection. Table~\ref{tab:interpretation} lists how each pattern of results will be interpreted.

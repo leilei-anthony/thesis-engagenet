@@ -1,0 +1,30 @@
+% The Planned rows of Table 5.4 (dlsu-manuscript/chapter_5.tex, tab:timetableactivities), November 2026 to
+% March 2027 only. Doc Jay (20 Nov): the full calendar is in the document; show the work still to do.
+% The full calendar stays as a backup (calendar.tex).
+\documentclass[12pt,border=10pt]{standalone}
+\input{slides-style}
+\newcommand{\B}{$\bullet$}
+\begin{document}
+\setlength{\tabcolsep}{7pt}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}l@{}}
+\begin{tabular}{@{}l*{5}{c}@{}}
+   \toprule
+   & \multicolumn{2}{c}{2026} & \multicolumn{3}{c}{2027} \\
+   \cmidrule(lr){2-3} \cmidrule(l){4-6}
+   Activity & Nov & Dec & Jan & Feb & Mar \\
+   \midrule
+   Proposal writing and defense & \B & & & & \\
+   Revisions and ethics review & \B & \B & & & \\
+   New selection rules & & \B & & & \\
+   Frame combinations & & \B & & & \\
+   Full feature extraction & & \B & \B & & \\
+   Training and evaluation & & & & \B & \\
+   Statistical analysis & & & & \B & \B \\
+   Writing the final manuscript & & & & \B & \B \\
+   Final defense & & & & & \B \\
+   \bottomrule
+\end{tabular}\\[4pt]
+{\small\textcolor{inktwo}{A bullet marks each month in which an activity takes place (Table 5.4, planned activities).}}
+\end{tabular}
+\end{document}

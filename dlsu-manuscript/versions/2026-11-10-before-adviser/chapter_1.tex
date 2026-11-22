@@ -1,0 +1,87 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%   Filename    : chapter_1.tex
+%
+%   Description : Introduction. The scope is narrowed here in response to the OCE panel's comment
+%                 that the scope was too broad.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Introduction}
+\label{sec:intro}
+
+This chapter introduces the study. Section~\ref{sec:overview} describes its background and states the research problem. Section~\ref{sec:objectives} states the objectives, Section~\ref{sec:scopelimitations} the scope and limitations, and Section~\ref{sec:significance} the significance of the research.
+
+
+%%
+%% --- 1.1 Background of the Study --- %%
+%%
+
+\section{Background of the Study}
+\label{sec:overview}
+
+Student engagement refers to a student's involvement in a learning activity, and it has behavioral, emotional, and cognitive dimensions \cite{fredricks2004}. Engagement is not fixed. It responds to features of the classroom, such as the task and the support a teacher gives \cite{fredricks2004}, which is one reason to measure it. Engagement has traditionally been measured through self-reports, teacher ratings, and observation. Automated measurement offers a further option: models infer engagement from behavioral and physiological signals, such as facial expressions and eye movements, at a finer time scale than questionnaires allow \cite{dmello2017}. Detecting learners' affective states and engagement from such signals is an established line of work in affective computing \cite{dmello2015}.
+
+This study concerns video-based learning, in which students watch lecture videos or attend classes in front of a computer. In the Philippines, the Commission on Higher Education issued guidelines in 2020 for flexible learning in higher education institutions, which include online delivery \cite{ched2020}. In video-based learning, the webcam is a readily available sensor, cheaper and less intrusive than physiological devices \cite{abedi2021}. Datasets such as DAiSEE \cite{gupta2016} and EngageNet \cite{singh2023} record students watching learning videos through a webcam and label each short clip with the level of engagement that human observers judged it to show. In EngageNet, three observers rated each ten-second clip on four levels, taking gaze, head pose, and facial expression into account \cite{singh2023}.
+
+Research on these datasets has concentrated on features and network architectures. On DAiSEE, for example, reported four-level accuracy has risen from 57.9\% to 67.5\% (Section~\ref{sec:rw-models}). Less attention has been paid to which frames of a clip reach the classifier. A ten-second clip contains well over a hundred frames, and most approaches either use every frame or keep a fixed subsample (Section~\ref{sec:rw-frameuse}). When only a few frames are kept, which ones are kept may matter: observers' clip-level judgments can be predicted from individual frames \cite{whitehill2014}, and in video understanding more broadly, the rule that selects frames measurably affects results \cite{korbar2019,brkic2025}. Two studies have compared frame selection rules for students' states. \citeA{resurreccion2024} compared a fixed rule with changepoint-based selection, each keeping three frames, for classifying academic emotions in DAiSEE. The preliminary study of this proposal \cite{sityar2026icce} compared Start-Middle-End (SME) sampling, which keeps the first, middle, and last frames, with the selection of three, five, or seven frames at peaks of facial-landmark velocity in EngageNet. All four classifiers tested had their highest mean macro F1 under three-frame velocity-peak selection, but the improvement over SME was statistically significant for only one of them.
+
+Neither comparison can show why one rule did better than another. In both, the position-based rule was tested at only three frames, so the effect of how frames are chosen cannot be separated from the effect of how many are kept. Neither included random selection, so neither can show whether choosing frames by their content does better than choosing them arbitrarily. The problem this study addresses is therefore the following: it is not known whether selecting frames by their content improves the classification of observer-rated engagement over selecting them by position, or over selecting them at random, when the same number of frames is kept. The research question is: \emph{Does content-based frame selection improve the classification of observer-rated student engagement over position-based and random selection at equal frame budgets, and does the answer depend on the frame budget and the classifier?}
+
+
+%%
+%% --- 1.2 Research Objectives --- %%
+%%
+
+\section{Research Objectives}
+\label{sec:objectives}
+
+\subsection{General Objective}
+
+The general objective of this study is to determine whether selecting video frames by their content, at peaks of facial-landmark velocity, improves the classification of observer-rated student engagement compared with selecting frames by their position in the clip and with selecting them at random, when three, five, or seven frames are kept.
+
+\subsection{Specific Objectives}
+
+The specific objectives of this research are as follows:
+\begin{enumerate}
+   \item To extract facial landmark, blendshape, and upper-body pose features from all EngageNet clips under ten frame selection conditions (SME at three frames; positional, random, and $k$-Changepoint selection at three, five, and seven frames), logging the outcome for every clip and defining a common set of clips shared by all conditions;
+   \item To train and evaluate four classifiers (a Long Short-Term Memory network (LSTM), a Multi-Layer Perceptron (MLP), a Support Vector Machine (SVM), and a Random Forest) under every condition with fixed settings, on the binary task of separating Highly-Engaged clips from all others, using macro F1, accuracy, and the Matthews correlation coefficient (Section~\ref{sec:measures}) on the subject-independent test split;
+   \item To compare content-based selection with position-based and random selection at each frame budget, clip by clip, using significance tests repeated over five training seeds or random draws, and equivalence tests that check whether two rules differ by less than two accuracy points (Section~\ref{sec:evaluation}); and
+   \item To determine, within each selection rule, how the number of frames kept, and the inclusion of the first and last frames of a clip, affect classification performance.
+\end{enumerate}
+
+
+%%
+%% --- 1.3 Scope and Limitations --- %%
+%%
+
+\section{Scope and Limitations of the Research}
+\label{sec:scopelimitations}
+
+\textbf{Data and participants.} The study uses EngageNet \cite{singh2023} only, with its official subject-independent partition: 91 training, 11 validation, and 26 test participants, counted by subject identifier (Section~\ref{sec:data}). The participants were 127 adults aged 18 to 37, recorded by webcam while watching instructional videos in settings such as computer laboratories, dormitory rooms, and open spaces \cite{singh2023}. The study uses pre-existing data only. No new data will be collected. Only the video is used. Audio, interaction data, and participants' answers to comprehension questions are not, because the observers' ratings were based on visible behavior. Clips labeled Subject Not Present are removed. EngageNet's documentation describes its participants only by sex and age range, and the dataset was not collected for Filipino learners or in Philippine classrooms. The results may therefore not carry over to Filipino students or to other datasets, whose settings and labels differ (Section~\ref{sec:rw-datasets}).
+
+\textbf{Feature extraction and frame selection (Objective 1).} Features are extracted with MediaPipe \cite{lugaresi2019}: 478 facial landmarks and 52 blendshape scores from its Face Landmarker, and eight upper-body keypoints from its Pose Landmarker. MediaPipe is kept from the preliminary study, and the same tool provides both the landmark positions that $k$-Changepoint selection needs and the features the classifiers receive. The same features are used in every condition so that frame selection is the only factor that changes the input. Other feature sets are not compared. In particular, the study does not use the action units of OpenFace 2.0 \cite{baltrusaitis2018}, on which the EngageNet baselines were built \cite{singh2023}. Blendshapes have not been shown to work better than action units, and whether the findings hold with action units is not tested (Section~\ref{sec:indicators}). Four selection rules are studied: two position-based rules (SME and positional), random selection as a control, and one content-based rule ($k$-Changepoint). The frame budgets of three, five, and seven frames extend the preliminary study. Dense sampling of every frame and frame weighting learned during training, such as attention, are outside the scope. The $k$-Changepoint rule selects velocity peaks, a minimal case of changepoint detection (Section~\ref{sec:changepoint}). Other changepoint methods, such as PELT \cite{killick2012} and Bayesian online changepoint detection (BOCPD) \cite{adams2007}, are not tested.
+
+\textbf{Task and classifiers (Objective 2).} The four engagement levels are reduced to one binary task: Highly-Engaged clips against all others. This task is retained from the preliminary study. The full training split is close to balanced under it (4,139 against 3,740 clips), and SMOTE oversampling \cite{chawla2002} is applied to the training data in every condition to balance it fully (Section~\ref{sec:training}). The four-level task is outside the scope. So is the separate detection of Not-Engaged clips, although these are arguably the most important to detect in practice. They stay in the negative class for three reasons: a single task keeps the study focused on frame selection, the preliminary results that motivate the design exist only for this task, and a second task would double the 76 planned comparisons (Section~\ref{sec:evaluation}). How often Not-Engaged clips are mistaken for Highly-Engaged ones is still reported for every condition (Section~\ref{sec:metrics}). The four classifiers keep the same settings in every condition, and these settings are not tuned, so a difference between two conditions can be attributed to the frames selected rather than to tuning. End-to-end deep networks, which learn their own features from the raw frames, are not included, because they would change the features as well as the frames.
+
+\textbf{Vision-language models.} Vision-language models are reviewed (Section~\ref{sec:rw-vlm}) but not tested, for three reasons. Current evidence does not show that they classify an individual student's engagement reliably without task-specific training. In a preprint, \citeA{goyal2026} tested five models on DAiSEE clips: their agreement with the labels for individual students never exceeded a Cohen's $\kappa$ of 0.10, and they assigned 85 to 100\% of clips to a single level. \citeA{teotia2024} found that models that recognized basic emotions well confused engaged and distracted behavior in classroom images. Using a hosted model would require sending participants' videos to an external service, which the EngageNet user agreement does not permit without the licensors' approval (Section~\ref{sec:ethics}). Adding them would also widen a scope that this study deliberately keeps narrow. Because video VLMs also receive only a few frames, testing whether this study's findings hold for them is left for future work.
+
+\textbf{Evaluation (Objectives 3 and 4).} Conditions are compared clip by clip on the same test clips, with the statistical procedures of Section~\ref{sec:evaluation}. Conclusions are limited to this dataset, task, feature set, and set of classifiers, and a difference is described as reliable only if it holds in all five seeds or draws. The labels describe what observers saw, so the results concern observer-rated engagement and say nothing directly about what participants felt or thought (Section~\ref{sec:definitions}).
+
+\textbf{Exclusions.} The study does not build a system for use in classrooms and does not evaluate whether accuracy differs across demographic groups. The work runs on the proponent's computer, in Python with MediaPipe, PyTorch \cite{paszke2019}, and scikit-learn \cite{pedregosa2011}. Processing time is measured on that computer only (Section~\ref{sec:metrics}), so it shows the relative cost of the conditions, not their cost on other hardware.
+
+
+%%
+%% --- 1.4 Significance of the Research --- %%
+%%
+
+\section{Significance of the Research}
+\label{sec:significance}
+
+The study contributes evidence on a design choice that engagement classification usually fixes without testing. Prior work has compared frame selection rules at a single frame budget and without a control (Section~\ref{sec:rw-synthesis}). By holding the number of frames equal and including random selection, this study can show whether content-based selection helps, whether position-based selection helps, and whether either does better than chance. Each outcome is informative. If velocity peaks outperform both positional and random selection, the moments of fastest facial movement carry engagement information that other frames lack. If random selection performs as well, simpler rules suffice and the cost of computing velocity peaks is unnecessary. If positional selection performs best, even coverage of the clip matters more than targeting movement.
+
+The study also contributes an evaluation protocol for frame selection that can be reused with other rules and datasets. The protocol uses a common clip set, paired tests repeated over seeds and draws, an equivalence margin, and rules for interpreting the outcomes. All of these are set before any results are seen, so the analysis cannot be adjusted to fit the results (Section~\ref{sec:evaluation}). This responds to a limitation of the preliminary study, in which a single-seed test produced a result whose direction reversed in other seeds.
+
+The findings are also relevant to video-based models beyond the four classifiers tested here. Vision-language models receive only a limited number of frames, and their results depend on which frames they receive \cite{brkic2025,tang2025aks}. Evidence about which frames of a learner's video carry information about engagement may inform how frames are chosen for such models. In practice, the number of frames kept also determines the cost of feature extraction, because the second extraction pass, which removes the background and locates facial landmarks, is run once for each selected frame (Section~\ref{sec:features}).
+
+For education, reliable engagement detection could help instructors in online and flexible learning notice when students disengage. The present study does not build such a tool. Its classifiers are not intended for decisions about individual students, and any future use would require higher accuracy than that achieved so far, together with attention to privacy and fairness (Section~\ref{sec:ethics}).

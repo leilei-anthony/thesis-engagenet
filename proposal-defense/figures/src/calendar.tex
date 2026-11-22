@@ -1,0 +1,40 @@
+% Table 5.4 (dlsu-manuscript/chapter_5.tex, tab:timetableactivities), unchanged except for size and font.
+\documentclass[12pt,border=10pt]{standalone}
+\input{slides-style}
+\newcommand{\B}{$\bullet$}
+\begin{document}
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}l@{}}
+\begin{tabular}{@{}l*{3}{>{\centering\arraybackslash}p{0.45cm}}*{11}{c}@{}}
+   \toprule
+   & \multicolumn{3}{c}{MSLABS} & \multicolumn{8}{c}{2026} & \multicolumn{3}{c}{2027} \\
+   \cmidrule(lr){2-4} \cmidrule(lr){5-12} \cmidrule(l){13-15}
+   Activity & 1 & 2 & 3 & May & Jun & Jul & Aug & Sep & Oct & Nov & Dec & Jan & Feb & Mar \\
+   \midrule
+   \multicolumn{15}{@{}l}{\textit{Completed}} \\
+   Topic exploration & \B & \B & \B & & & & & & & & & & & \\
+   Review of related literature & \B & \B & \B & \B & \B & \B & \B & \B & \B & & & & & \\
+   Dataset search & \B & \B & \B & & & & & & & & & & & \\
+   Experiments on DAiSEE & \B & \B & \B & & & & & & & & & & & \\
+   EngageNet access & & & \B & \B & \B & & & & & & & & & \\
+   Preliminary feature extraction & & & & & \B & \B & & & & & & & & \\
+   Preliminary experiments & & & & & & \B & \B & \B & & & & & & \\
+   Paper writing and submission & & & & & & & \B & \B & & & & & & \\
+   Oral comprehensive exam & & & & & & & & & \B & & & & & \\
+   \midrule
+   \multicolumn{15}{@{}l}{\textit{Planned}} \\
+   Proposal writing and defense & & & & & & & & & & \B & & & & \\
+   Revisions and ethics review & & & & & & & & & & \B & \B & & & \\
+   New selection rules & & & & & & & & & & & \B & & & \\
+   Frame combinations & & & & & & & & & & & \B & & & \\
+   Full feature extraction & & & & & & & & & & & \B & \B & & \\
+   Training and evaluation & & & & & & & & & & & & & \B & \\
+   Statistical analysis & & & & & & & & & & & & & \B & \B \\
+   Writing the final manuscript & & & & & & & & & & & & & \B & \B \\
+   Final defense & & & & & & & & & & & & & & \B \\
+   \bottomrule
+\end{tabular}\\[4pt]
+{\small\textcolor{inktwo}{MSLABS1 to MSLABS3: the three research terms, May 2025 to April 2026. A bullet marks each term or month in which an activity takes place.}}
+\end{tabular}
+\end{document}

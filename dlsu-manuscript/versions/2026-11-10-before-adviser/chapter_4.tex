@@ -1,0 +1,358 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%   Filename    : chapter_4.tex
+%
+%   Description : Research Methodology, including the preliminary study.
+%                 Facts and numbers come from docs/methodology-and-results.md, the extraction and
+%                 training code in src/, and dlsu-manuscript/notes/claim-audit.md (approved wording).
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Research Methodology}
+\label{sec:methodology}
+
+This chapter describes how the study will be carried out. Section~\ref{sec:design} states the research design, and Sections~\ref{sec:data} to \ref{sec:evaluation} describe the data, feature extraction, frame selection rules, classifiers, and evaluation procedure. Section~\ref{sec:prelim} reports a completed preliminary study \cite{sityar2026icce} whose limitations shaped the design. Section~\ref{sec:ethics} addresses ethical considerations, and Section~\ref{sec:calendar} gives the schedule of activities.
+
+
+%%
+%% --- 4.1 Research Design --- %%
+%%
+
+\section{Research Design}
+\label{sec:design}
+
+The study asks whether selecting the frames of a video clip by their content improves engagement classification compared with selecting frames by their position in the clip, and whether any improvement exceeds what a random choice of the same number of frames achieves.
+
+The preliminary study (Section~\ref{sec:prelim}) compared one position-based rule, Start-Middle-End (SME) sampling at three frames, with content-based selection at three, five, and seven frames. Because the position-based rule existed only at three frames, the effect of how frames are chosen could not be separated from the effect of how many frames are kept. The design also had no condition showing how an arbitrary choice of frames would perform.
+
+The proposed study therefore uses a full factorial design. Three selection rules (positional, random, and $k$-Changepoint) are crossed with three frame budgets ($k = 3, 5, 7$) and four classifiers: a Long Short-Term Memory network (LSTM), a Multi-Layer Perceptron (MLP), a Support Vector Machine (SVM), and a Random Forest. SME at $k = 3$ is kept as a tenth selection condition to connect the results to the preliminary study. Table~\ref{tab:conditions} lists the selection conditions. The dataset, data split, feature set, classification task, and classifier settings are the same in every condition, so conditions differ only in which frames reach the classifier. Figure~\ref{fig:pipeline} shows the pipeline. \askadviser{Is this scope good enough for the proposal?}
+
+\begin{table}[t]
+   \centering
+   \caption{Frame selection conditions. Each condition is evaluated with all four classifiers.}
+   \label{tab:conditions}
+   \begin{tabular}{lL{4.6cm}cL{3.4cm}}
+      \toprule
+      Rule & Selects frames by & $k$ & Status \\
+      \midrule
+      SME & First, middle, and last valid frame & 3 & Completed (preliminary) \\
+      Positional & Center of each of $k$ equal segments & 3, 5, 7 & Proposed \\
+      Random & Uniform random draw, five draws & 3, 5, 7 & Proposed \\
+      $k$-Changepoint & Top-$k$ facial-landmark velocity peaks & 3, 5, 7 & Completed; to be re-extracted \\
+      \bottomrule
+   \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+   \centering
+   \begin{tikzpicture}[
+      node distance=0.45cm,
+      box/.style={draw, rounded corners=2pt, align=center, text width=9.5cm, inner sep=5pt, font=\small},
+      half/.style={draw, rounded corners=2pt, align=center, text width=4.3cm, minimum height=1.5cm, inner sep=5pt, font=\small},
+      arr/.style={-{Stealth[length=2.2mm]}, thick}
+   ]
+      \node[box] (clip) {EngageNet clip (10 s) and its engagement label};
+      \node[box, below=of clip] (scan) {\textbf{First pass.} Every second frame: face and pose detection, validity check, pose values, facial-landmark velocity};
+      \node[box, below=of scan] (select) {\textbf{Frame selection} from the valid frames: SME ($k = 3$), positional, random, or $k$-Changepoint, with $k \in \{3, 5, 7\}$};
+      \node[box, below=of select] (extract) {\textbf{Second pass.} Selected frames only: background removal, face landmarks and blendshape scores; 1,518 values per frame};
+      \node[half, below=of extract, xshift=-2.6cm] (seq) {Ordered frame sequence\\$\downarrow$\\LSTM};
+      \node[half, below=of extract, xshift=2.6cm] (pool) {Average over frames\\$\downarrow$\\MLP, SVM, Random Forest};
+      \node[box, anchor=north] (out) at ([yshift=-0.45cm]pool.south -| extract.south) {Prediction: Highly-Engaged (level 3) or not (levels 0--2)};
+      \draw[arr] (clip) -- (scan);
+      \draw[arr] (scan) -- (select);
+      \draw[arr] (select) -- (extract);
+      \draw[arr] (extract.south -| seq.north) -- (seq.north);
+      \draw[arr] (extract.south -| pool.north) -- (pool.north);
+      \draw[arr] (seq.south) -- (seq.south |- out.north);
+      \draw[arr] (pool.south) -- (pool.south |- out.north);
+   \end{tikzpicture}
+   \caption{Pipeline of the proposed study. All conditions share the same clips, features, and classifiers, and differ only in the frame selection rule and the number of frames $k$.}
+   \label{fig:pipeline}
+\end{figure}
+
+
+%%
+%% --- 4.2 Data --- %%
+%%
+
+\section{Data}
+\label{sec:data}
+
+\subsection{Dataset}
+
+EngageNet \cite{singh2023} consists of about 11,300 ten-second video clips of 127 participants. Each clip is annotated with one of four engagement levels: Not-Engaged, Barely-engaged, Engaged, and Highly-Engaged, mapped to the integers 0 to 3 in that order. Clips in which the participant is absent are labeled SNP (Subject Not Present). These carry no engagement level and are removed.
+
+The official EngageNet partition is used without re-partitioning. It is subject-independent: no participant appears in more than one split, so a classifier cannot score well by recognizing participants it saw during training. Table~\ref{tab:splits} summarizes the partition. The preliminary study (Section~\ref{sec:prelim}) drew on the full validation and test splits but only part of the training split, namely 2,925 clips from 32 of its 91 participants, because the download of the training split was incomplete. After feature extraction and the restriction described in Section~\ref{sec:commonset}, its training data contained 2,719 clips from 31 participants. The proposed study will use all three splits in full, including all 91 training participants, and will balance the training data with SMOTE (Section~\ref{sec:training}), which the preliminary study's main results did not use. Its results will therefore not be directly comparable with those of the preliminary study. Comparisons between conditions within the proposed study are unaffected, because every condition, including SME and $k$-Changepoint selection, will be re-run on the same data.
+
+\begin{table}[t]
+   \centering
+   \caption[EngageNet partition]{EngageNet partition. The proposed study uses the official partition in full. Labeled clips include SNP clips, which are removed. The preliminary-study columns describe its common clip set (Section~\ref{sec:commonset}) and the participants with at least one clip in it.}
+   \label{tab:splits}
+   \small
+   \begin{tabular}{lrrrrr}
+      \toprule
+      & \multicolumn{3}{c}{Official partition (proposed study)} & \multicolumn{2}{c}{Preliminary study} \\
+      \cmidrule(lr){2-4} \cmidrule(lr){5-6}
+      Split & Participants & Labeled clips & SNP clips & Participants & Clips used \\
+      \midrule
+      Training & 91$^{a}$ & 7,983 & 104 & 31 & 2,719 \\
+      Validation & 11 & 1,071 & 0 & 11 & 867 \\
+      Test & 26 & 2,257 & 1 & 25 & 2,005 \\
+      \bottomrule
+   \end{tabular}
+
+   \vspace{0.5ex}
+   {\footnotesize $^{a}$Counted from the participant numbers in the clip file names. \citeA{singh2023} report 90 training participants. The source of the difference is not known.\par}
+\end{table}
+
+\subsection{Classification Task}
+
+The four engagement levels are reduced to a binary task with a threshold of 3. Highly-Engaged clips (level 3) form the positive class, and clips at levels 0 to 2 form the negative class. This formulation is retained from the preliminary study, where the training data used was close to balanced under it (1,375 negative and 1,344 positive clips). The full official training split is also close to balanced, with 4,139 negative and 3,740 positive clips after SNP clips are removed. The four-level task is outside the scope of this study.
+
+\subsection{Common Clip Set}
+\label{sec:commonset}
+
+A clip enters the comparison only if features were extracted for it under every selection condition, and the same clips are used in every condition for training, validation, and testing. Without this restriction, a difference between two conditions could come from scoring different clips rather than from selecting different frames. In the preliminary study, the common set contained 2,719 training, 867 validation, and 2,005 test clips. A clip can be lost when none of its frames passes the validity check (Section~\ref{sec:features}) or when extraction fails. The proposed extraction will log the outcome for every clip (features extracted, no valid frame, time-out, or error), so that the common set and every exclusion from it can be reported.
+
+
+%%
+%% --- 4.3 Feature Extraction --- %%
+%%
+
+\section{Feature Extraction}
+\label{sec:features}
+
+Features are extracted with MediaPipe \cite{lugaresi2019}. Its Face Landmarker model returns 478 facial landmarks and 52 blendshape scores per face, and the lite version of its Pose Landmarker model returns body keypoints. Extraction runs in two passes over each clip.
+
+\textbf{First pass.} Every second frame is read, resized so that its longer side is at most 640 pixels, and passed to both models. A frame is \emph{valid} when a face is detected and, if a body pose is also detected, two further checks hold. First, the left and right shoulders must be either both visible or both not visible, using a visibility score threshold of 0.5. Second, when both shoulders are visible, a landmark on the nose must lie horizontally between them. These checks discard frames in which the detected face and body are inconsistent with each other. For every scanned frame, eight upper-body keypoints (both shoulders, elbows, wrists, and hips) are recorded, each with $x$, $y$, and $z$ coordinates and a visibility score, giving 32 pose values. For valid frames, the two-dimensional facial landmark coordinates are also kept for the velocity signal used by $k$-Changepoint selection (Section~\ref{sec:selection}).
+
+\textbf{Second pass.} Only the selected frames are read again, at full resolution. The background of each frame is removed with the rembg tool \cite{rembg}, using its U$^2$-Net human-segmentation model \cite{qin2020}, and the Face Landmarker is run again on the result. This gives the 52 blendshape scores and the $x$, $y$, and $z$ coordinates of the 478 landmarks (1,434 values). The 32 pose values of a selected frame are taken from the first pass.
+
+Each selected frame is therefore described by 1,518 values: 52 blendshape scores, 1,434 landmark coordinates, and 32 pose values. Values are missing when no pose is detected in the first pass or no face is detected after background removal, and these are set to zero. Blendshape scores are outputs of a learned model that describe facial movements such as raising the brows or pulling the lip corners. They resemble the Action Units of the Facial Action Coding System \cite{ekman1978}, but they are not Action Unit intensities coded by trained annotators.
+
+Two changes will be made to the extraction used in the preliminary study. First, the outputs of the first pass (the list of valid frames, the landmark signal, and the pose values) will be stored once per clip and reused by every selection rule. All rules then choose from exactly the same valid frames, and the first pass is not repeated for each condition. Second, the outcome of every clip will be logged, as described in Section~\ref{sec:commonset}, together with the time each pass takes, from which the processing time in Section~\ref{sec:metrics} is computed.
+
+
+%%
+%% --- 4.4 Frame Selection Rules --- %%
+%%
+
+\section{Frame Selection Rules}
+\label{sec:selection}
+
+Let $V = (f_1, f_2, \dots, f_n)$ be the valid frames of a clip in temporal order. Each rule selects up to $k$ frames from $V$ and returns them in temporal order. When $n \le k$, every rule keeps all $n$ valid frames, so some clips contribute fewer than $k$ frames. Shorter sequences are padded and masked during training (Section~\ref{sec:training}).
+
+\textbf{SME} keeps the first, middle, and last valid frames: $f_1$, $f_{\lfloor n/2 \rfloor + 1}$, and $f_n$. It is used only at $k = 3$.
+
+\textbf{Positional} selection divides $V$ into $k$ segments of equal length and keeps the center frame of each, that is, $f_{\lfloor (j - 1/2)\,n/k \rfloor + 1}$ for $j = 1, \dots, k$. In words, the valid frames are split into $k$ equal parts, and the frame nearest the middle of each part is kept. This follows the segment-based sampling of Temporal Segment Networks \cite{wang2016}, and it extends position-based selection to any frame budget. Unlike SME, it never takes the first or last valid frame, so comparing the two at $k = 3$ shows whether including the clip boundaries matters.
+
+\textbf{Random} selection draws $k$ frames uniformly from $V$ without replacement. Because it uses no information about the clip, it estimates the accuracy that an arbitrary choice of $k$ valid frames achieves. Five independent draws are made for each $k$, using random seeds 42 to 46, and each draw produces its own feature set.
+
+\textbf{$k$-Changepoint} selection keeps the frames at which the face moves the most. Let $\mathbf{p}_{t,i}$ be the two-dimensional position of landmark $i$ in valid frame $t$. Positions are first centered within each frame, which removes movement of the face as a whole across the image, such as a shift of the camera. The velocity between consecutive valid frames is
+\begin{equation}
+   v_t = \sqrt{\sum_{i=1}^{478} \left\lVert \tilde{\mathbf{p}}_{t+1,i} - \tilde{\mathbf{p}}_{t,i} \right\rVert^2},
+   \qquad
+   \tilde{\mathbf{p}}_{t,i} = \mathbf{p}_{t,i} - \frac{1}{478} \sum_{j=1}^{478} \mathbf{p}_{t,j}.
+   \label{eq:velocity}
+\end{equation}
+The velocity signal is smoothed with a five-frame moving average, which replaces each value with the mean of itself and the two values on either side, so that a single jittery frame does not create a peak. Its local maxima are then found under a minimum separation of seven scanned frames (14 video frames), which prevents several frames of one continuous movement from being selected as separate peaks. The $k$ peaks with the highest velocity are kept. If fewer than $k$ peaks exist, all of them are kept.
+
+Section~\ref{sec:changepoint} shows that, before smoothing, the velocity signal is equivalent to the simplest configuration of the window-sliding changepoint method reviewed by \citeA{truong2020}, with windows one frame wide. With windows that narrow, a peak marks a moment of fast movement rather than a lasting change in the signal, so the procedure is best described as velocity-peak selection.
+
+
+%%
+%% --- 4.5 Classifiers and Training --- %%
+%%
+
+\section{Classifiers and Training}
+\label{sec:training}
+
+Four classifiers are used. The LSTM receives the selected frames as an ordered sequence, and the other three receive the average of the frame vectors.
+
+\begin{itemize}
+   \item The \textbf{LSTM} \cite{hochreiter1997} receives the ordered sequence of frames, padded with zeros to length $k$. It has one recurrent layer of 64 units. Its outputs are averaged over the real (unpadded) time steps, then passed to a 32-unit layer with ReLU activation and a two-unit output layer.
+   \item The \textbf{MLP} receives the average of the clip's frame vectors, computed over real frames only. It has layers of 64 and 32 units with ReLU activation and a two-unit output layer. Its widths match the LSTM so that it serves as a non-sequential comparison for it.
+   \item The \textbf{SVM} \cite{cortes1995} uses a radial basis function kernel with the scikit-learn defaults: $C = 1$, which sets how heavily errors on the training data are penalized against keeping the gap between the classes wide, and $\gamma$ set to ``scale'', which sets from the spread of the features how far the influence of each training example reaches.
+   \item The \textbf{Random Forest} \cite{breiman2001} uses 100 trees grown without depth limits.
+\end{itemize}
+
+The SVM and Random Forest receive the same frame average as the MLP, standardized using the mean and standard deviation of the training split. The neural networks receive the unstandardized features. The LSTM and MLP are trained with the AdamW optimizer \cite{loshchilov2019}: learning rate $10^{-3}$, weight decay $10^{-4}$, batch size 64, and unweighted cross-entropy loss. Training runs for at most 20 epochs. The learning rate is halved once the validation loss has gone more than three epochs without improving, and training stops early after ten consecutive epochs without improvement. The model with the lowest validation loss is kept. Each neural configuration is trained with five seeds (42 to 46), which control weight initialization and the order of training batches. The SVM and Random Forest are deterministic given their inputs (random state 42) and are trained once per condition.
+
+The training data are balanced with SMOTE \cite{chawla2002} in every condition. SMOTE creates synthetic examples of the smaller class, each placed between a real example and one of its five nearest neighbors in the same class, until the two classes are the same size. It is applied to the training split only, after the common clip set is fixed, and never to the validation or test clips. For the SVM and Random Forest, it operates on the standardized frame averages. For the LSTM and MLP, each clip's sequence of frames is flattened into one vector, together with its number of real frames, and restored afterward, so each synthetic sequence blends two real clips frame by frame. The SMOTE random state is fixed at 42. In the preliminary study, SMOTE had no material effect, because the training data were already nearly balanced. It is applied here so that every condition is trained on exactly balanced data.
+
+No hyperparameter search is performed. All classifiers use the settings above in every condition, so that differences between conditions reflect frame selection rather than tuning. The comparison between classifiers is therefore between default settings, not between best-tuned models.
+
+One setting may still change before the main runs: how the LSTM combines its outputs. The LSTM produces one output for each frame, and these must be combined into a single prediction for the clip. The settings above average them. In a preliminary comparison, letting the network learn how much weight to give each frame, a method called attention, gave higher mean accuracy than averaging under all four sampling conditions, by 2.04 points over 20 runs, although the difference was not tested for significance. That comparison was made on the test split, which should be used only for the final evaluation. In this study, the choice between averaging and attention will therefore be made on the validation split, before any test-set results are computed.
+
+
+%%
+%% --- 4.6 Evaluation --- %%
+%%
+
+\section{Evaluation}
+\label{sec:evaluation}
+
+\subsection{Metrics}
+\label{sec:metrics}
+
+Each configuration is evaluated on the common test clips. The primary metric is macro F1, the unweighted mean of the F1 scores of the two classes, which counts errors on each class equally regardless of its size. Accuracy, per-class F1, and confusion matrices are also reported. The Matthews correlation coefficient (MCC) is reported as a summary of agreement between predicted and true classes \cite{chicco2020}. For binary labels, the Pearson correlation coefficient (PCC) between predictions and true labels equals the MCC, so the PCC values reported in the preliminary study are MCC values. Mean squared error (MSE) is also reported for consistency with earlier work in this project, but with labels of 0 and 1 it adds nothing. Each wrong prediction contributes 1 and each correct one 0, so MSE equals the error rate ($1 - \text{accuracy}$), and class-wise MSE equals the error rate within each class. Neither is interpreted separately.
+
+Because the binary task pools the Not-Engaged, Barely-engaged, and Engaged levels into one class, the share of clips at each of these levels that are wrongly predicted as Highly-Engaged is also reported for every condition. This shows in particular how often Not-Engaged clips are mistaken for highly engaged ones. It is descriptive and is not tested for significance.
+
+Processing time is reported for each condition: the time per clip of the second extraction pass, which grows with the number of frames selected, and the training time of each classifier. The first pass is shared by all conditions and is reported once. All times are measured on one computer, whose specifications are reported with them, and are descriptive only.
+
+\subsection{Paired Significance Tests}
+
+Because every condition is evaluated on the same clips, two configurations can be compared clip by clip. The exact McNemar test \cite{mcnemar1947} is used. It considers only the clips on which exactly one of the two configurations is correct, and tests whether each configuration is equally likely to be the correct one. This test is recommended for comparing two classifiers on a single test set \cite{dietterich1998}. Each comparison also reports the difference in accuracy, with a 95\% confidence interval from a paired bootstrap of 10,000 resamples of the test clips \cite{efron1993}. The bootstrap is \emph{paired} because each resample draws the same clips for both configurations, so the two are always compared on identical clips.
+
+The comparisons are fixed in advance and grouped into five families. The Holm--Bonferroni correction \cite{holm1979} is applied within each family to control the chance of a false positive across its tests.
+
+\begin{enumerate}
+   \item \textbf{Content versus position:} $k$-Changepoint against positional selection, for each $k$ and classifier (12 comparisons).
+   \item \textbf{Content versus chance:} $k$-Changepoint against random selection, for each $k$ and classifier (12 comparisons).
+   \item \textbf{Position versus chance:} positional against random selection, for each $k$ and classifier (12 comparisons).
+   \item \textbf{Frame budget:} within each rule and classifier, $k = 3$ against $5$, $3$ against $7$, and $5$ against $7$ (36 comparisons).
+   \item \textbf{Clip boundaries:} SME against positional selection at $k = 3$, for each classifier (4 comparisons).
+\end{enumerate}
+
+\subsection{Repeated Seeds and Draws}
+
+A \emph{seed} is a number that fixes the random choices made when a neural network is trained, such as its starting weights and the order of its training batches. Retraining with a different seed gives a slightly different model. A \emph{draw} is one random choice of frames under random selection. Each draw selects different frames and therefore gives different features. A McNemar test compares one set of predictions with another. The neural networks have five sets of predictions, one per seed, and random selection has five, one per draw. Any comparison involving either one therefore has five versions. When both apply, seed $i$ is paired with draw $i$. Each version is tested separately and corrected within its family, and the number of versions reaching significance is reported. A difference is described as reliable only if it is significant in all five versions. Accuracy is reported as the mean and standard deviation across the five versions. In the preliminary study, a single-seed test produced a significant result whose direction reversed in three of the five seeds (Section~\ref{sec:prelim}), which is why this rule is used.
+
+\subsection{Equivalence}
+
+A non-significant test does not show that two configurations perform the same. It may only mean that the test set was too small to detect a difference. To call two configurations \emph{equivalent}, the study needs a separate test, and for that it must first state how small a difference is too small to matter \cite{lakens2017}. This study sets that margin at 2 accuracy points, about 40 to 45 clips of a test set of 2,000 to 2,250 clips, before any results are seen. Two configurations are called equivalent only if the whole 95\% confidence interval of their accuracy difference lies between $-2$ and $+2$ points. Each comparison therefore has three possible outcomes: a reliable difference (Section~\ref{sec:evaluation}), equivalence, or, when neither holds, an inconclusive result.
+
+The margin of 2 points comes from the preliminary study, for three reasons. First, retraining the LSTM with different seeds changed its accuracy with a standard deviation of up to 1.3 points, so an effect of frame selection smaller than this would be lost in the variation between training runs. Second, the confidence interval of the accuracy difference between the SVM under 3-Changepoint sampling and under SME was 2.8 points wide, about $\pm 1.4$ points. Equivalence can only be shown when the whole interval fits inside the margin, so a margin much narrower than 1.5 points could rarely be confirmed on a test set of this size. Third, the significant sampling effects ranged from 2.39 to 4.79 points, so a margin of 2 points would not call differences of that size equivalent.
+
+\subsection{Interpretation of Outcomes}
+
+Table~\ref{tab:interpretation} states in advance how the main outcomes will be interpreted at each frame budget. Writing these rules before the experiments are run prevents the interpretation from being adjusted to fit the results.
+
+\begin{table}[t]
+   \centering
+   \caption[Planned interpretation of outcomes]{Planned interpretation of outcomes at a given frame budget $k$. ``$>$'' means a reliable difference (Section~\ref{sec:evaluation}); ``$\approx$'' means equivalent within $\pm 2$ accuracy points.}
+   \label{tab:interpretation}
+   \begin{tabular}{L{4.3cm}L{9.2cm}}
+      \toprule
+      Outcome & Interpretation \\
+      \midrule
+      Changepoint $>$ random and changepoint $>$ positional & Velocity peaks carry information beyond both an arbitrary and an evenly spaced choice of frames. \\
+      Changepoint $\approx$ random, both $>$ positional & Evenly spaced frames are a poor choice, but velocity peaks are not shown to add information beyond an arbitrary choice. \\
+      Positional $>$ changepoint & Covering the whole clip evenly is more useful than selecting high-velocity frames. \\
+      Changepoint $\approx$ random $\approx$ positional & No evidence that the selection rule matters at this frame budget. \\
+      Any other pattern & Reported as observed, without a general conclusion about the selection rules. \\
+      \bottomrule
+   \end{tabular}
+\end{table}
+
+
+%%
+%% --- 4.7 Preliminary Results --- %%
+%%
+
+\section{Preliminary Results}
+\label{sec:prelim}
+
+The preliminary study was carried out as the first stage of this thesis and was published as \citeA{sityar2026icce}. The results below are those of the published paper, and Tables~\ref{tab:prelim-f1} and \ref{tab:prelim-mcnemar} are adapted from it. In places, the interpretation given here is narrower than the paper's, following a review of its claims against the data.
+
+The study compared SME sampling with $k$-Changepoint selection at $k = 3$, 5, and 7 across the four classifiers. It used the same data, features, task, and training settings described above, and the common clip set of 2,719 training, 867 validation, and 2,005 test clips. The neural networks were trained with five seeds, and their results are reported as means.
+
+Table~\ref{tab:prelim-f1} reports macro F1 for all sixteen configurations. All four classifiers had their highest mean macro F1 under 3-Changepoint sampling. The best configuration was 3-Changepoint sampling with the SVM, at 0.7010 macro F1 and 0.7017 accuracy.
+
+\begin{table}[t]
+   \centering
+   \caption[Macro F1 in the preliminary study]{Macro F1 in the preliminary study (threshold 3, $n = 2{,}005$ test clips). LSTM and MLP values are means over five seeds. The highest value for each classifier is in bold. Adapted from \citeA{sityar2026icce}.}
+   \label{tab:prelim-f1}
+   \begin{tabular}{lcccc}
+      \toprule
+      Classifier & SME & 3-Changepoint & 5-Changepoint & 7-Changepoint \\
+      \midrule
+      LSTM & 0.6475 & \textbf{0.6548} & 0.6413 & 0.6494 \\
+      MLP & 0.6497 & \textbf{0.6617} & 0.6471 & 0.6445 \\
+      SVM & 0.6838 & \textbf{0.7010} & 0.6966 & 0.6884 \\
+      Random Forest & 0.5307 & \textbf{0.5904} & 0.5612 & 0.5610 \\
+      \bottomrule
+   \end{tabular}
+\end{table}
+
+A consistent direction across classifiers does not show that the differences are reliable, so Table~\ref{tab:prelim-mcnemar} tests each changepoint condition against SME clip by clip. Three points stand out. First, only the Random Forest improved significantly over SME, and it did so at all three frame budgets. Under 3-Changepoint sampling, it gained 4.79 accuracy points, against 1.70 for the SVM, 1.05 for the MLP, and $-0.15$ for the LSTM. Second, the size of the gain did not follow the accuracy of the classifiers. The Random Forest, the least accurate classifier, gained the most, but the SVM, the most accurate, did not gain the least. With only four classifiers, the study could not tell whether the larger gain of the Random Forest comes from its lower accuracy or from some other difference between the classifiers. Third, the one significant LSTM result, which favored SME over 5-Changepoint sampling, is not reliable. The test used the predictions of a single seed, and across the five seeds the difference reversed direction in three.
+
+\begin{table}[t]
+   \centering
+   \caption[Accuracy difference from SME in the preliminary study]{Accuracy difference from SME in the preliminary study, in percentage points, with Holm--Bonferroni-corrected McNemar $p$-values. Positive values favor changepoint sampling. Tests for the LSTM and MLP used the predictions of seed 42. $^{*}$Significant after correction. $^{\dagger}$Reverses direction in three of five seeds. Adapted from \citeA{sityar2026icce}.}
+   \label{tab:prelim-mcnemar}
+   \small
+   \begin{tabular}{lccc}
+      \toprule
+      Classifier & 3-Changepoint & 5-Changepoint & 7-Changepoint \\
+      \midrule
+      Random Forest & $+4.79$ ($p < 0.001$)$^{*}$ & $+2.59$ ($p = 0.004$)$^{*}$ & $+2.39$ ($p = 0.004$)$^{*}$ \\
+      SVM & $+1.70$ ($p = 0.082$) & $+1.25$ ($p = 0.209$) & $+0.50$ ($p = 0.558$) \\
+      MLP & $+1.05$ ($p = 0.413$) & $-0.45$ ($p = 0.611$) & $-1.65$ ($p = 0.233$) \\
+      LSTM & $-0.15$ ($p = 0.890$) & $-2.49$ ($p = 0.011$)$^{*\dagger}$ & $-0.60$ ($p = 0.751$) \\
+      \bottomrule
+   \end{tabular}
+\end{table}
+
+Among the changepoint conditions, no classifier improved beyond $k = 3$. Macro F1 fell at each step from $k = 3$ to $k = 7$ for the SVM, the MLP, and the Random Forest, but from $k = 5$ to $k = 7$ the MLP and the Random Forest changed by less than 0.003, so only the SVM declined clearly at both steps. Differences between frame budgets were not tested for significance.
+
+Three further observations bear on the proposed design. First, differences between classifiers were larger than differences between sampling conditions. The SVM exceeded the Random Forest by 8.9 to 12.0 accuracy points across conditions, whereas no sampling condition changed a classifier's accuracy by more than 4.8 points. Second, with an averaging readout and default settings, the LSTM and MLP did not differ significantly in any condition. Third, across five seeds, LSTM accuracy varied less under 3-Changepoint sampling (standard deviation 0.0022) than under SME (0.0129). This pattern was weaker at $k = 5$ and $k = 7$ and did not hold for the MLP at $k = 7$, and five seeds give only a rough estimate of spread.
+
+The preliminary study leaves four questions open, which the proposed design addresses. Position-based selection was tested only at three frames (Section~\ref{sec:design}). No random baseline showed what an arbitrary choice of frames achieves (Section~\ref{sec:selection}). Differences between frame budgets were not tested (Section~\ref{sec:evaluation}). Significance tests for the neural networks relied on a single seed (Section~\ref{sec:evaluation}).
+
+
+%%
+%% --- 4.8 Ethical Considerations --- %%
+%%
+
+\section{Ethical Considerations}
+\label{sec:ethics}
+
+The study uses pre-existing data only. No new data will be collected, and the proponent will have no contact with the participants. Access to EngageNet was obtained through the dataset owners' request form and the EngageNet Dataset User Agreement, signed by the proponent with the adviser named as an additional researcher. The agreement permits academic, non-commercial, not-for-profit use only. It forbids redistributing, republishing, or disseminating the data in any form without the licensors' prior written approval, and it forbids modifying the database. It also requires that no still frame or video be used in a way that could cause a participant embarrassment or mental anguish, and that publications cite the dataset \cite{singh2023}.
+
+The clips show the faces of identifiable people, so the study treats them as personal information. Whether the Philippine Data Privacy Act of 2012 \cite{ra10173} applies in full is uncertain. Its scope excludes, among others, personal information processed for research purposes and personal information collected from residents of other countries under those countries' laws (Section~4 of the Act), and EngageNet's documentation does not state where its participants were recorded. The ethics review will settle this question. The following measures apply in either case.
+
+\begin{itemize}
+   \item \textbf{Storage.} The videos are stored only on the proponent's computer. They are excluded from version control and will not be shared or redistributed. The original clips are never altered. Features are computed from copies of the selected frames. Extracted landmark coordinates describe the geometry of each face and may still allow a person to be identified, so they are stored and handled under the same restrictions.
+   \item \textbf{Publication.} No image of a participant will appear in this manuscript, in presentations, or in any other publication, since showing frames would republish the data. Figures use diagrams instead, as in Figure~\ref{fig:pipeline}.
+   \item \textbf{Reporting.} Results are reported only in aggregate, over sets of clips. No result or engagement label is reported for an individual participant.
+   \item \textbf{Intended use.} The study compares frame selection methods. Its classifiers are not intended for decisions about individual students, and their accuracy (about 70\% in the preliminary study) would not support such use. The study does not evaluate whether accuracy differs across demographic groups, which is a limitation for any future deployment.
+\end{itemize}
+
+The research ethics forms for studies using pre-existing data from human participants are in Appendix~\ref{sec:appendixa} and will be submitted for review before the proposed extraction begins.
+
+
+%%
+%% --- 4.9 Calendar of Activities --- %%
+%%
+
+\section{Calendar of Activities}
+\label{sec:calendar}
+
+Table~\ref{tab:timetableactivities} shows the planned schedule, from the proposal defense, planned for about 20 November 2026 in Term~1, to the final defense in early April 2027 and the revisions that follow it, all within Term~2 of Academic Year 2026--2027. Each bullet represents about one week of activity. Because the proposed study uses the full training split, the training videos missing from the preliminary study's incomplete download must first be obtained, and feature extraction covers about 11,300 clips per condition instead of about 6,250.
+
+\begin{table}[t]
+   \centering
+   \caption{Calendar of activities. Each bullet represents about one week.}
+   \label{tab:timetableactivities}
+   \small
+   \begin{tabular}{lcccccc}
+      \toprule
+      & \multicolumn{2}{c}{2026} & \multicolumn{4}{c}{2027} \\
+      \cmidrule(lr){2-3} \cmidrule(lr){4-7}
+      Activity & Nov & Dec & Jan & Feb & Mar & Apr \\
+      \midrule
+      Proposal writing and defense & $\bullet\bullet\bullet$ & & & & & \\
+      Proposal revisions and ethics review & $\bullet$ & $\bullet\bullet$ & & & & \\
+      Obtaining the remaining videos & $\bullet$ & $\bullet$ & & & & \\
+      Implementing the new selection rules & & $\bullet\bullet\bullet$ & & & & \\
+      Feature extraction, all conditions & & $\bullet$ & $\bullet\bullet\bullet\bullet$ & & & \\
+      Training and evaluation & & & & $\bullet\bullet\bullet\bullet$ & & \\
+      Statistical analysis & & & & $\bullet$ & $\bullet$ & \\
+      Writing the final manuscript & & & & & $\bullet\bullet\bullet$ & \\
+      Final defense & & & & & & $\bullet$ \\
+      Post-defense revisions and submission & & & & & & $\bullet\bullet\bullet$ \\
+      \bottomrule
+   \end{tabular}
+\end{table}

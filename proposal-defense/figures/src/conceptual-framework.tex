@@ -1,0 +1,37 @@
+% Figure 3.1 (dlsu-manuscript/chapter_3.tex, fig:conceptual), unchanged except for font and colors.
+\documentclass[12pt,border=10pt]{standalone}
+\input{slides-style}
+\begin{document}
+\begin{tikzpicture}[
+   node distance=0.4cm,
+   chainbox/.style={draw=basec, line width=0.9pt, rounded corners=3pt, align=center, text width=3.9cm, inner sep=5pt, font=\small, fill=black!5},
+   var/.style={draw=cp, line width=1.2pt, fill=cp!8, rounded corners=3pt, align=center, text width=3.6cm, inner sep=5pt, font=\small},
+   plain/.style={var, draw=basec, fill=white, line width=0.9pt},
+   arr/.style={-{Stealth[length=2.3mm]}, line width=1pt, color=inktwo}
+]
+   \node[chainbox] (clip) {EngageNet clip};
+   \node[chainbox, below=of clip] (frames) {Selected frames};
+   \node[chainbox, below=of frames] (feat) {Facial behavior and posture features, combined across frames};
+   \node[chainbox, below=of feat] (clf) {Classifier};
+   \node[chainbox, below=of clf] (pred) {Prediction:\\high engagement or not};
+
+   \node[var, left=0.8cm of frames] (rule) {\textbf{Independent:} frame selection rule and frame budget $k$};
+   \node[var, left=0.8cm of clf] (model) {\textbf{Independent:} classifier (LSTM, MLP, SVM, Random Forest)};
+   \node[var, right=0.8cm of feat] (combo) {\textbf{Independent:} frame combination (mean or a temporal representation)};
+   \node[plain, right=0.8cm of clip] (label) {Observer rating (EngageNet label)};
+   \node[var, draw=sme, fill=sme!10, right=0.8cm of pred] (perf) {\textbf{Dependent:} classification performance (macro F1, accuracy, MCC)};
+
+   \node[draw=basec, dashed, line width=0.9pt, rounded corners=3pt, align=center, text width=12.6cm, inner sep=5pt, font=\small, anchor=north] (const)
+      at ([yshift=-0.45cm]perf.south -| pred.south) {\textbf{Held constant:} dataset and partition, feature extractor, binary task (Highly-Engaged or not), classifier settings, training procedure (with SMOTE), the same five random seeds};
+
+   \draw[arr] (clip) -- (frames);
+   \draw[arr] (frames) -- (feat);
+   \draw[arr] (feat) -- (clf);
+   \draw[arr] (clf) -- (pred);
+   \draw[arr] (rule) -- (frames);
+   \draw[arr] (combo) -- (feat);
+   \draw[arr] (model) -- (clf);
+   \draw[arr] (pred) -- (perf);
+   \draw[arr] (label.east) -- ++(0.35,0) |- (perf.east);
+\end{tikzpicture}
+\end{document}

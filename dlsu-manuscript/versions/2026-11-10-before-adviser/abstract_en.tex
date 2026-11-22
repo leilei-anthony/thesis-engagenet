@@ -1,0 +1,15 @@
+\begin{comment}
+This file will contain your abstract in English.
+Template rules: 150 to 250 words, one paragraph, no citations or quotes. Moves: motivation,
+problem, contribution, methodology (results are skipped at the proposal stage).
+\end{comment}
+
+\begin{abstract}
+Detecting student engagement automatically from webcam video could help instructors in online and blended learning notice when students disengage. Video-based engagement classifiers often process only a few frames of each clip, yet the rule that chooses these frames has rarely been studied as a factor in its own right. A preliminary study on the EngageNet dataset found that selecting frames at peaks of facial-landmark velocity gave the highest mean macro F1 for all four classifiers tested, but the improvement over a fixed Start-Middle-End rule was statistically significant for only one classifier, and the design could not separate the effect of how frames are chosen from the number of frames kept or from chance. This study will determine whether content-based frame selection improves the classification of observer-rated engagement over position-based and random selection when the same number of frames is kept. Positional, random, and velocity-peak selection will each be applied at three, five, and seven frames to all EngageNet clips, with Start-Middle-End selection kept at three frames. Facial landmarks, blendshape scores, and upper-body pose will be extracted with MediaPipe, and four classifiers will separate Highly-Engaged clips from all others on a subject-independent test split. Conditions will be compared clip by clip with exact McNemar tests, corrected for multiple comparisons and repeated over five training seeds or random draws, and with equivalence tests, which check whether two rules differ by less than two accuracy points, a margin set before any results are seen.
+
+\begin{flushleft}
+\begin{tabular}{lp{4.25in}}
+\hspace{-0.5em}\textbf{Keywords:}\hspace{0.25em} & Student engagement detection, frame selection, temporal sampling, affective computing, video classification, E-learning \\
+\end{tabular}
+\end{flushleft}
+\end{abstract}

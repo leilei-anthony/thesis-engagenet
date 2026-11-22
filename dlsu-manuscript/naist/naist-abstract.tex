@@ -1,0 +1,84 @@
+%% Abstract of thesis for the NAIST application (item k: "Abstract of thesis. Any format is
+%% acceptable. If you haven't written graduation thesis yet, summary of research is acceptable.")
+%% Facts and numbers match the DLSU proposal manuscript (../chapter_4.tex) and
+%% docs/methodology-and-results.md. Build: latexmk -pdf naist-abstract.tex
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{newtxtext,newtxmath}
+\usepackage[margin=25mm]{geometry}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage[hidelinks,pdftitle={Abstract of Thesis: Position-Based versus Content-Based Frame Selection for Detecting Student Engagement in Video-Based Learning},pdfauthor={Lester Anthony Sityar Jr.}]{hyperref}
+
+\setlength{\parskip}{0.6em}
+\setlength{\parindent}{0pt}
+\pagestyle{empty}
+
+\newcommand{\thesistitle}{Position-Based versus Content-Based Frame Selection for Detecting Student Engagement in Video-Based Learning}
+
+\begin{document}
+
+%% ---------------------------------------------------------------- Title page
+\begin{center}
+\vspace*{18mm}
+
+{\large\scshape Abstract of Thesis}\\[1mm]
+{\normalsize Summary of research in progress}
+
+\vspace{20mm}
+
+{\LARGE\bfseries \thesistitle\par}
+
+\vspace{20mm}
+
+{\Large Lester Anthony Sityar Jr.}
+
+\vspace{12mm}
+
+Bachelor of Science in Computer Science and\\
+Master of Science in Computer Science\\[3mm]
+Department of Software Technology, College of Computer Studies\\
+De La Salle University, Manila, Philippines
+
+\vspace{10mm}
+
+Thesis adviser: Dr.\ Judith J.\ Azcarraga
+
+\vspace{18mm}
+
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{>{\raggedleft\arraybackslash}p{38mm} >{\raggedright\arraybackslash}p{100mm}}
+   \textbf{Thesis stage} & Proposal; proposal defense in November 2026 \\
+   \textbf{Expected completion} & April 2027 \\
+   \textbf{Preliminary study} & L.\,A.\ Sityar Jr.\ and J.\ Azcarraga, ``Temporal Sampling Strategies for Student Engagement Detection,'' accepted for publication in the \emph{Proceedings of the 34th International Conference on Computers in Education} (ICCE 2026), Asia-Pacific Society for Computers in Education. \\
+\end{tabular}
+
+\vfill
+
+Submitted with an application to the Nara Institute of Science and Technology (NAIST)\\
+November 2026
+\end{center}
+
+\newpage
+
+%% ---------------------------------------------------------------- Abstract
+{\large\bfseries \thesistitle\par}
+\vspace{1mm}
+Lester Anthony Sityar Jr.\ \textperiodcentered\ De La Salle University
+
+\vspace{3mm}
+{\large\bfseries Abstract}
+
+Automatically detecting student engagement from webcam video could help instructors in online learning notice when students disengage. Video-based engagement classifiers often process only a few frames of each clip, yet the rule that chooses these frames has rarely been studied as a factor in its own right. This thesis asks whether choosing frames by their content improves engagement classification over choosing them by their position in the clip, or at random, when the same number of frames is kept.
+
+A preliminary study, accepted for publication at ICCE 2026, used the EngageNet dataset of ten-second webcam clips labeled with engagement levels by human observers. It compared a fixed rule that keeps the first, middle, and last frames of a clip with a content-based rule that keeps three, five, or seven frames at peaks of facial-landmark velocity. Facial and upper-body pose features were extracted with MediaPipe, and four classifiers (LSTM, MLP, SVM, and Random Forest) separated highly engaged clips from all others. All four classifiers had their highest mean macro F1 with three velocity-peak frames, and the best, an SVM, reached 0.70 on 2,005 test clips from participants not seen in training. The improvement over the fixed rule, however, was statistically significant only for the Random Forest, by up to 4.79 accuracy points, and the design could not separate how frames are chosen from how many are kept or from chance.
+
+The thesis addresses these limits with a full factorial design. Position-based, random, and velocity-peak selection are each applied at three, five, and seven frames to all of EngageNet's roughly 11,300 clips of 127 participants, with features, classifier settings, and data held constant so that only the selected frames differ. Conditions are compared clip by clip with exact McNemar tests, corrected for multiple comparisons and repeated over five training seeds or random draws, and with equivalence tests based on a two-point accuracy margin. The tests, the margin, and the interpretation of each possible outcome are all fixed before any results are seen. The thesis will contribute controlled evidence on a design choice that engagement classifiers rarely examine, together with an evaluation protocol for frame selection that can be reused with other selection rules and datasets.
+
+\vspace{2mm}
+\textbf{Keywords:} student engagement detection, frame selection, temporal sampling, video classification, affective computing, e-learning
+
+\end{document}

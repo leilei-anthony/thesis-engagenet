@@ -1,0 +1,16 @@
+% Table 2.5 (dlsu-manuscript/chapter_2.tex, tab:rw-positioning), with the citations written out.
+\documentclass[12pt,border=10pt]{standalone}
+\input{slides-style}
+\begin{document}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}L{3.6cm}L{3.3cm}L{4.4cm}L{3.3cm}L{2.2cm}@{}}
+   \toprule
+   Work & Data & Selection rules & Frame budgets & Random control \\
+   \midrule
+   Singh et al. (2023) & EngageNet & none (every frame, equal segments) & not applicable & no \\
+   Resurreccion (2024) & DAiSEE & Targeted, Changepoint & 3 & no \\
+   Preliminary study (Sityar \& Azcarraga, 2026a) & EngageNet (partial training split) & SME, $k$-Changepoint & SME: 3; Changepoint: 3, 5, 7 & no \\
+   \textbf{This study} & \textbf{EngageNet (full)} & \textbf{SME, positional, random, $k$-Changepoint, $k$-BOCPD} & \textbf{SME: 3; others: 3, 5, 7} & \textbf{yes (five draws)} \\
+   \bottomrule
+\end{tabular}
+\end{document}
