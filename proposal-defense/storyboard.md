@@ -55,7 +55,7 @@ For the proposal defense. The slot is 25–30 minutes. The panel is the same as 
 | No separate theory section; bring in each concept where it is used (03:45) | Working definitions moved to backup (B15). Terms are defined where they first appear (see "The narrative") |
 | "Why does it matter?" can be your first slide (05:09) | Slide 3 |
 | Cite every statement you can (02:52, 06:12) | "Cite on slide" table |
-| The research question must not be answerable by yes or no (08:30) | Slide 9. Revised on 22 Nov into two "how" questions, now in §1.1 and §4.1; sent to Doc Jay for comment |
+| The research question must not be answerable by yes or no (08:30) | Slide 9. Revised on 22–23 Nov into three questions, none answerable by yes or no, now in §1.1 and §4.1; to send to Doc Jay for comment |
 | Objectives word for word; drop only "To" (10:09) | Slides 9–14 |
 | Scope and limitations per objective, e.g. one slide each (11:13); keep the general one hidden (37:06) | Slides 10–14; B16 |
 | Bring up the definition of engagement: how the three kinds differ, and where the study comes in (13:49) | Slide 3 |
@@ -319,9 +319,10 @@ Short form on the slide; the full reference is in the manuscript.
 
 **Slide 9. "Research questions and general objective"** · 0:45. *Replaces spec 5.*
 - **On the slide:**
-  - **The two research questions** (revised 22 Nov, word for word from §1.1):
-    1. How does content-based frame selection compare with position-based and random selection in classifying observer-rated student engagement at equal frame budgets, and how does this comparison vary with the frame budget and the classifier?
-    2. How much does representing the order and change of the selected frames add to engagement classification, compared with averaging them?
+  - **The three research questions** (revised 22–23 Nov, word for word from §1.1):
+    1. How does content-based frame selection compare with position-based and random selection in classifying observer-rated student engagement at equal frame budgets?
+    2. How does this comparison vary with the frame budget and the classifier?
+    3. What are the effects of representing the order and change of the selected frames on engagement classification, compared with averaging them?
   - **Below it, the general objective,** word for word from §1.2: "to determine whether selecting the frames of a video clip by their content improves the classification of observer-rated student engagement compared with selecting them by their position in the clip."
 - **Say:** the two things earlier comparisons couldn't separate:
   - the rule from the number of frames;
@@ -681,7 +682,7 @@ These are numbered as specs; the order you present them in is the running order 
 
 ### 5. Working title: "Research question" · 0:45
 - **20 Nov:** replaced by slide 9 (research question and general objective).
-- **On the slide (superseded 22 Nov; see slide 9):** the two research questions, word for word from §1.1.
+- **On the slide (superseded 22 Nov; see slide 9):** the three research questions, word for word from §1.1.
 - **Say:** the two things earlier comparisons couldn't separate:
   - the rule from the number of frames;
   - content-based selection from chance.

@@ -73,9 +73,11 @@ What Doc Jay asked for:
 - Also from that paper (§3.1–3.2.1): each participant watched three lecture videos of about 5 minutes and answered questions after each; recorded "in an unconstrained environment" (labs, dorm rooms, open spaces).
 - "83 male and 44 female" is now in §1.3 of the manuscript too, so the slide's number traces to it.
 
-## 6. Research questions: revised 22 Nov
+## 6. Research questions: revised 22–23 Nov
 
 **Done (22 Nov):** two "how" questions replace the yes/no ones. They are now in §1.1 and the opening of §4.1, and on slide 9. `main.pdf` was rebuilt.
+
+**23 Nov (your edits):** the first question is split in two, and the temporal question now reads "What are the effects of…". There are three questions in all.
 
 **Before** (both answerable by yes or no):
 > Does content-based frame selection improve the classification of observer-rated student engagement over position-based and random selection at equal frame budgets, and does the answer depend on the frame budget and the classifier?
@@ -83,8 +85,9 @@ What Doc Jay asked for:
 > The study therefore also asks whether representing the temporal aspect of the selected frames improves classification.
 
 **Now:**
-> 1. How does content-based frame selection compare with position-based and random selection in classifying observer-rated student engagement at equal frame budgets, and how does this comparison vary with the frame budget and the classifier?
-> 2. How much does representing the order and change of the selected frames add to engagement classification, compared with averaging them?
+> 1. How does content-based frame selection compare with position-based and random selection in classifying observer-rated student engagement at equal frame budgets?
+> 2. How does this comparison vary with the frame budget and the classifier?
+> 3. What are the effects of representing the order and change of the selected frames on engagement classification, compared with averaging them?
 
 **Why this wording:**
 - **Doc Jay's own words:** "how", "in what ways".
